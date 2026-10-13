@@ -8,6 +8,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 
 from .const import CONF_QUANTITY, DEFAULT_QUANTITY, DOMAIN
 from .feeder import FeederClient
@@ -68,3 +69,17 @@ class FeederCoordinator(DataUpdateCoordinator[datetime]):
                 "The feeding request failed. Check the bowl before trying again; "
                 "the feeder may have received the request."
             ) from err
+
+    async def async_sync_clock(self) -> None:
+        """Use Home Assistant's configured local time, then update the sensor."""
+        try:
+            await self.client.connect()
+            local_time = dt_util.now().replace(tzinfo=None, microsecond=0)
+            actual = await self.client.set_clock(local_time)
+        except (XlinkError, OSError, TimeoutError, ValueError) as err:
+            await self.client.close()
+            raise HomeAssistantError(
+                "Unable to verify clock sync. The clock may already have changed; "
+                "check the device clock before trying again."
+            ) from err
+        self.async_set_updated_data(actual)

@@ -14,6 +14,7 @@ setup, schedule forms and entity lifecycle. Firmware behavior can still differ.
 - Local IPv4 communication; no PetTec account or cloud server.
 - Configuration through Home Assistant's integration UI.
 - Device clock sensor and connection availability.
+- Manual clock sync and optional sync when Home Assistant starts.
 - Saved feeding amount, from 1 to 200 grams, matching the stock app's manual UI.
 - A button that sends one feeding request. Feeding commands are never retried
   automatically after an uncertain result.
@@ -34,7 +35,8 @@ The standalone provisioning helper requires Python 3.11 or later.
 5. Enter the feeder's IPv4 address and its numeric Xlink access key.
 
 Setup performs authentication and a read-only clock request before it creates
-controls. It does not configure Wi-Fi, feed, reset the device, or update firmware.
+controls. Clock sync on startup is off by default and must be enabled explicitly.
+Setup does not configure Wi-Fi, feed, reset the device, or update firmware.
 Reserve the feeder's IPv4 address in your router so it remains stable.
 
 For manual installation, copy `custom_components/pettec_local` into your Home
@@ -43,15 +45,16 @@ Assistant configuration's `custom_components` directory and restart.
 ## Stored feeding schedules
 
 Update the integration in HACS and restart Home Assistant. Open **Settings →
-Devices & services → PetTec PF 05WD → Configure**. The editor reads all five
+Devices & services → PetTec PF 05WD → Configure → Stored feeding schedules**.
+The editor reads all five
 slots and shows their current settings. Select a slot, choose the time, amount
 in whole grams, weekdays and whether it is enabled, then submit. Open Configure
 again to inspect the stored result or edit another slot.
 
 The time follows the **feeder's own clock**. The form displays the most recent
 clock reading; check that its local date and time are correct before enabling
-any schedule. This version does not set the clock or adjust it for daylight
-saving time. Schedules are intended to run on the feeder without Home Assistant;
+any schedule. Use **Sync device clock** if it needs correcting. Schedules are
+intended to run on the feeder without Home Assistant;
 that behavior still needs a hardware test.
 
 Saving reads the current list again, replaces only the selected slot, sends
@@ -65,6 +68,28 @@ does not write schedules, and saving does not send a manual feeding command.
 To disable a slot, clear **Enabled** and submit. Verify the first scheduled
 meal with the feeder attended. Account for every enabled slot and any Home
 Assistant feeding automations to avoid overlapping meals.
+
+## Clock synchronization
+
+Press the feeder's **Sync device clock** button to set its clock to Home
+Assistant's current local date and time. Home Assistant's configured time zone
+is used, including its current daylight saving offset. One clock write is sent,
+then the clock is read back to verify it and update the device clock sensor.
+
+For automatic synchronization, open **Configure → Clock settings**, enable
+**Sync device clock on Home Assistant startup**, and submit. This defaults to
+off. Enabling it saves a preference; use the button to sync immediately. On
+the next Home Assistant restart, one attempt is made after startup completes.
+Integration reloads and reconnects do not trigger synchronization. The integration
+must finish loading before the startup event; if it misses startup or sync fails,
+use the button. Failures are logged, and clock writes are not retried automatically.
+
+This is not continuous synchronization. If daylight saving time changes while
+Home Assistant keeps running, press the button or use a separate automation
+for it. Synchronization does not rewrite schedule records or send manual feeding
+requests, but changing the clock affects when existing schedules run. Test the
+first clock correction with the feeder attended. Clock writes still need hardware
+verification; failed readback can mean the clock changed without being confirmed.
 
 ## Feeder is not connected to Wi-Fi
 

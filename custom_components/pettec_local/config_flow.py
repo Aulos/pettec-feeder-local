@@ -11,7 +11,7 @@ from homeassistant.const import CONF_HOST
 from homeassistant.core import callback
 from homeassistant.helpers import selector
 
-from .const import CONF_ACCESS_KEY, DOMAIN
+from .const import CONF_ACCESS_KEY, CONF_SYNC_TIME_STARTUP, DOMAIN
 from .feeder import FeederClient, ScheduleChangedError
 from .protocol import ScheduleSlot
 from .xlink import AuthenticationError, UnsupportedDeviceError, XlinkError
@@ -35,7 +35,7 @@ class PetTecConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(config_entry):
-        return PetTecScheduleOptionsFlow()
+        return PetTecOptionsFlow()
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -136,10 +136,32 @@ class PetTecConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
 
 
-class PetTecScheduleOptionsFlow(config_entries.OptionsFlow):
-    """Edit one stored timer, with no writes until the user submits it."""
+class PetTecOptionsFlow(config_entries.OptionsFlow):
+    """Configure stored schedules and opt-in startup clock synchronization."""
 
     async def async_step_init(self, user_input=None):
+        return self.async_show_menu(step_id="init", menu_options=["schedules", "clock"])
+
+    async def async_step_clock(self, user_input=None):
+        if user_input is not None:
+            return self.async_create_entry(
+                data={**self.config_entry.options, **user_input}
+            )
+        return self.async_show_form(
+            step_id="clock",
+            data_schema=probatio.Schema(
+                {
+                    probatio.Required(
+                        CONF_SYNC_TIME_STARTUP,
+                        default=self.config_entry.options.get(
+                            CONF_SYNC_TIME_STARTUP, False
+                        ),
+                    ): bool,
+                }
+            ),
+        )
+
+    async def async_step_schedules(self, user_input=None):
         if self.config_entry.state is not ConfigEntryState.LOADED:
             return self.async_abort(reason="not_loaded")
         client = self.config_entry.runtime_data.client
@@ -177,7 +199,7 @@ class PetTecScheduleOptionsFlow(config_entries.OptionsFlow):
                 }
             )
         return self.async_show_form(
-            step_id="init",
+            step_id="schedules",
             data_schema=probatio.Schema(
                 {
                     probatio.Required("slot"): selector.SelectSelector(

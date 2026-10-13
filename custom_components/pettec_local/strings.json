@@ -44,18 +44,14 @@
     "button": {
       "feed": {
         "name": "Dispense selected quantity"
+      },
+      "sync_clock": {
+        "name": "Sync device clock"
       }
     }
   },
   "options": {
     "step": {
-      "init": {
-        "title": "Stored feeding schedules",
-        "description": "Select one of the five schedules read from the feeder. Opening this editor does not change any schedule.",
-        "data": {
-          "slot": "Schedule slot"
-        }
-      },
       "schedule": {
         "title": "Edit schedule {slot}",
         "description": "Times use the feeder clock, last read as {clock}. Check that it shows the correct local date and time before enabling a schedule. Submit writes this slot to the feeder and verifies all five slots; other slots are preserved. To disable this slot, clear Enabled.",
@@ -64,6 +60,27 @@
           "time": "Feeding time",
           "quantity": "Feeding amount",
           "weekdays": "Days"
+        }
+      },
+      "schedules": {
+        "title": "Stored feeding schedules",
+        "description": "Select one of the five schedules read from the feeder. Opening this editor does not change any schedule.",
+        "data": {
+          "slot": "Schedule slot"
+        }
+      },
+      "init": {
+        "title": "Configure PetTec feeder",
+        "menu_options": {
+          "schedules": "Stored feeding schedules",
+          "clock": "Clock settings"
+        }
+      },
+      "clock": {
+        "title": "Clock settings",
+        "description": "When enabled, sync once after Home Assistant starts, using its configured local time zone. This setting defaults to off. To sync immediately, use the Sync device clock button. Clock changes affect when stored schedules run. A failed sync is not retried automatically.",
+        "data": {
+          "sync_time_on_startup": "Sync device clock on Home Assistant startup"
         }
       }
     },

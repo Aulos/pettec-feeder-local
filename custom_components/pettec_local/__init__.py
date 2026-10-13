@@ -1,14 +1,18 @@
 """Local control of PetTec PF 05WD feeders."""
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_HOST, Platform
-from homeassistant.core import HomeAssistant
+import logging
 
-from .const import CONF_ACCESS_KEY
+from homeassistant.config_entries import ConfigEntry, ConfigEntryState
+from homeassistant.const import CONF_HOST, EVENT_HOMEASSISTANT_STARTED, Platform
+from homeassistant.core import CoreState, HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
+
+from .const import CONF_ACCESS_KEY, CONF_SYNC_TIME_STARTUP
 from .coordinator import FeederCoordinator
 from .feeder import FeederClient
 
 PLATFORMS = [Platform.SENSOR, Platform.NUMBER, Platform.BUTTON]
+_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -19,6 +23,25 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await coordinator.async_config_entry_first_refresh()
         entry.runtime_data = coordinator
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+        if hass.state in (CoreState.not_running, CoreState.starting):
+
+            async def sync_clock_at_start(event):
+                if entry.state is ConfigEntryState.LOADED and entry.options.get(
+                    CONF_SYNC_TIME_STARTUP, False
+                ):
+                    try:
+                        await coordinator.async_sync_clock()
+                    except HomeAssistantError:
+                        _LOGGER.warning(
+                            "Startup clock sync failed; check the device clock. "
+                            "No automatic retry will be made."
+                        )
+
+            entry.async_on_unload(
+                hass.bus.async_listen_once(
+                    EVENT_HOMEASSISTANT_STARTED, sync_clock_at_start
+                )
+            )
     except BaseException:
         await client.close()
         raise

@@ -3,6 +3,7 @@
 from datetime import datetime
 from types import MappingProxyType, SimpleNamespace
 from unittest.mock import AsyncMock, patch
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -10,14 +11,19 @@ pytest.importorskip("homeassistant")
 
 from homeassistant import data_entry_flow, loader
 from homeassistant.config_entries import ConfigEntries, ConfigEntry, ConfigEntryState
-from homeassistant.core import HomeAssistant
+from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
+from homeassistant.core import CoreState, HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers import device_registry, entity_registry, frame
 from homeassistant.helpers.update_coordinator import UpdateFailed
 
 from custom_components.pettec_local import async_setup_entry
 from custom_components.pettec_local.config_flow import PetTecConfigFlow
-from custom_components.pettec_local.const import DOMAIN, MAX_QUANTITY
+from custom_components.pettec_local.const import (
+    CONF_SYNC_TIME_STARTUP,
+    DOMAIN,
+    MAX_QUANTITY,
+)
 from custom_components.pettec_local.coordinator import FeederCoordinator
 from custom_components.pettec_local.feeder import ScheduleChangedError
 from custom_components.pettec_local.number import FeedQuantity
@@ -64,6 +70,7 @@ def client():
         connect=AsyncMock(),
         close=AsyncMock(),
         get_clock=AsyncMock(return_value=CLOCK),
+        set_clock=AsyncMock(return_value=CLOCK),
         dispense=AsyncMock(),
         get_schedules=AsyncMock(),
         update_schedule=AsyncMock(),
@@ -241,7 +248,8 @@ async def test_quantity_is_saved_without_feeding(hass, entry, client):
     client.dispense.assert_not_called()
     sensors = list(hass.data["sensor"].entities)
     buttons = list(hass.data["button"].entities)
-    assert len(sensors) == len(buttons) == 1
+    assert len(sensors) == 1
+    assert len(buttons) == 2
     assert hass.states.get(sensors[0].entity_id).state == CLOCK.isoformat()
     await hass.services.async_call(
         "button", "press", {"entity_id": buttons[0].entity_id}, blocking=True
@@ -263,8 +271,8 @@ SCHEDULE_INPUT = {
 }
 
 
-async def start_schedule_editor(hass, entry, client):
-    """Use the real options-flow manager and integration lifecycle."""
+async def load_feeder(hass, entry, client):
+    """Load actual platforms with a controlled client."""
     hass.config_entries._entries[entry.entry_id] = entry
     device_registry.async_setup(hass)
     await device_registry.async_load(hass)
@@ -274,8 +282,18 @@ async def start_schedule_editor(hass, entry, client):
     with patch("custom_components.pettec_local.FeederClient", return_value=client):
         assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
+
+
+async def start_schedule_editor(hass, entry, client):
+    """Use the real options-flow manager and integration lifecycle."""
+    await load_feeder(hass, entry, client)
     result = await hass.config_entries.options.async_init(entry.entry_id)
     assert result["step_id"] == "init"
+    assert result["type"] == "menu"
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "schedules"}
+    )
+    assert result["step_id"] == "schedules"
     client.update_schedule.assert_not_awaited()
     result = await hass.config_entries.options.async_configure(
         result["flow_id"], {"slot": "1"}
@@ -356,6 +374,9 @@ async def test_schedule_options_read_failure_aborts_without_writing(
     hass.config_entries.options.async_abort(result["flow_id"])
     client.get_schedules.side_effect = XlinkError("wrong length")
     result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "schedules"}
+    )
     assert result["type"] == "abort"
     assert result["reason"] == "cannot_read_schedules"
     client.update_schedule.assert_not_awaited()
@@ -366,6 +387,9 @@ async def test_schedule_options_require_loaded_integration(hass, entry):
     hass.config_entries._entries[entry.entry_id] = entry
     frame.async_setup(hass)
     result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "schedules"}
+    )
     assert result["type"] == "abort"
     assert result["reason"] == "not_loaded"
 
@@ -379,3 +403,105 @@ async def test_schedule_editor_stops_if_integration_is_unloaded(hass, entry, cli
     assert result["type"] == "abort"
     assert result["reason"] == "not_loaded"
     client.update_schedule.assert_not_awaited()
+
+
+async def test_clock_options_are_off_by_default_and_preserve_quantity(hass, entry):
+    hass.config_entries._entries[entry.entry_id] = entry
+    frame.async_setup(hass)
+    hass.config_entries.async_update_entry(entry, options={"quantity": 67})
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "clock"}
+    )
+    assert result["step_id"] == "clock"
+    marker = next(iter(result["data_schema"].schema))
+    assert marker.default() is False
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {CONF_SYNC_TIME_STARTUP: True}
+    )
+    assert result["type"] == "create_entry"
+    assert entry.options == {"quantity": 67, CONF_SYNC_TIME_STARTUP: True}
+
+
+@pytest.mark.parametrize("month,hour", [(1, 13), (7, 14)])
+async def test_manual_clock_button_uses_ha_local_time_and_updates_sensor(
+    hass, entry, client, month, hour
+):
+    await load_feeder(hass, entry, client)
+    local = datetime(2026, month, 13, hour, tzinfo=ZoneInfo("Europe/Warsaw"))
+    expected = local.replace(tzinfo=None)
+    client.set_clock.return_value = expected
+    buttons = list(hass.data["button"].entities)
+    button = next(
+        button for button in buttons if button.translation_key == "sync_clock"
+    )
+    with patch(
+        "custom_components.pettec_local.coordinator.dt_util.now", return_value=local
+    ):
+        await hass.services.async_call(
+            "button", "press", {"entity_id": button.entity_id}, blocking=True
+        )
+    client.set_clock.assert_awaited_once_with(expected)
+    assert entry.runtime_data.data == expected
+    sensor = next(iter(hass.data["sensor"].entities))
+    assert hass.states.get(sensor.entity_id).state == expected.isoformat()
+    client.dispense.assert_not_awaited()
+    client.update_schedule.assert_not_awaited()
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+@pytest.mark.parametrize("state", [CoreState.not_running, CoreState.starting])
+async def test_startup_clock_sync_honors_option_and_runs_once(
+    hass, entry, client, enabled, state
+):
+    hass.set_state(state)
+    await load_feeder(hass, entry, client)
+    hass.config_entries.async_update_entry(
+        entry, options={CONF_SYNC_TIME_STARTUP: enabled}
+    )
+    client.set_clock.assert_not_awaited()
+    for _ in range(2):
+        hass.bus.async_fire(EVENT_HOMEASSISTANT_STARTED)
+        await hass.async_block_till_done()
+    assert client.set_clock.await_count == int(enabled)
+    client.dispense.assert_not_awaited()
+    client.update_schedule.assert_not_awaited()
+
+
+async def test_unload_removes_startup_clock_listener(hass, entry, client):
+    await load_feeder(hass, entry, client)
+    hass.config_entries.async_update_entry(
+        entry, options={CONF_SYNC_TIME_STARTUP: True}
+    )
+    await hass.config_entries.async_unload(entry.entry_id)
+    hass.bus.async_fire(EVENT_HOMEASSISTANT_STARTED)
+    await hass.async_block_till_done()
+    client.set_clock.assert_not_awaited()
+
+
+async def test_loading_while_ha_is_running_does_not_sync_clock(hass, entry, client):
+    hass.set_state(CoreState.running)
+    await load_feeder(hass, entry, client)
+    hass.config_entries.async_update_entry(
+        entry, options={CONF_SYNC_TIME_STARTUP: True}
+    )
+    hass.bus.async_fire(EVENT_HOMEASSISTANT_STARTED)
+    await hass.async_block_till_done()
+    client.set_clock.assert_not_awaited()
+
+
+async def test_startup_clock_failure_is_logged_and_not_retried(
+    hass, entry, client, caplog
+):
+    await load_feeder(hass, entry, client)
+    hass.config_entries.async_update_entry(
+        entry, options={CONF_SYNC_TIME_STARTUP: True}
+    )
+    client.set_clock.side_effect = TimeoutError("lost acknowledgement")
+    for _ in range(2):
+        hass.bus.async_fire(EVENT_HOMEASSISTANT_STARTED)
+        await hass.async_block_till_done()
+    client.set_clock.assert_awaited_once()
+    client.close.assert_awaited_once()
+    assert "Startup clock sync failed" in caplog.text
+    client.dispense.assert_not_awaited()

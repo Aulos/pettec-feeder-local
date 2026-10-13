@@ -126,3 +126,27 @@ Schedule acceptance, persistence across power loss, weekday execution, and
 operation with Home Assistant offline remain unverified. The schedule editor
 uses the device's existing clock and does not change it or handle daylight
 saving time automatically.
+
+## Clock synchronization
+
+`CmdManager.setRTCObject`, at `classes.dex` code_item `0x2da01c`, constructs
+inner command `04`. `RTCObject.toBytes`, at `0x2dbae8`, writes seven bytes:
+year minus 2000, month, day, hour, minute, second and weekday.
+`RTCObject(long)` uses the local Java Calendar and maps Calendar's Sunday=1
+through Saturday=7 to wire values Sunday=0 through Saturday=6. This convention
+is different from schedule weekday bit positions.
+
+`SyncRTCTimerUsecase$1.onNext(byte[])`, at `0x2d4414`, forwards raw reply bytes
+to its callback. The implementation conservatively requires the same exact
+one-byte zero status used for other successful writes, then independently
+reads command `03` and compares the returned clock. Readback allows elapsed
+transport time plus two seconds; it does not treat an acknowledgement alone
+as verified clock synchronization. The clock-setting command has not been
+exercised on hardware.
+
+Home Assistant supplies its configured local wall time through `dt_util.now()`.
+The device has no time-zone field. Startup synchronization is opt-in, runs once
+on `EVENT_HOMEASSISTANT_STARTED`, and its listener is removed on unload. Reloading
+an integration while Home Assistant is running does not write the clock. A missed
+startup or failed sync requires an explicit manual button press. No periodic,
+reconnect or daylight-saving clock writes are added.

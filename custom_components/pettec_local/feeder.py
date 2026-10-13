@@ -1,16 +1,19 @@
 """Local PF05WD commands, including verified schedule updates."""
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
+from time import monotonic
 
 from .protocol import (
     FEED,
     READ_CLOCK,
     READ_SCHEDULES,
     SCHEDULE_COUNT,
+    SET_CLOCK,
     WRITE_SCHEDULES,
     ProtocolError,
     ScheduleSlot,
+    clock_payload,
     decode_clock,
     decode_frame,
     decode_schedules,
@@ -70,6 +73,21 @@ class FeederClient:
             raise XlinkError(
                 f"Feeder returned status 0x{payload[0]:02x}; no automatic retry"
             )
+
+    async def set_clock(self, value: datetime) -> datetime:
+        """Write once and verify the returned local clock, allowing transit time."""
+        payload = clock_payload(value)
+        started = monotonic()
+        status = await self._request(SET_CLOCK, payload)
+        if status != b"\x00":
+            raise XlinkError("Clock acknowledgement failed; outcome is uncertain")
+        actual = await self.get_clock()
+        tolerance = timedelta(seconds=monotonic() - started + 2)
+        if abs(actual - value.replace(microsecond=0)) > tolerance:
+            raise XlinkError(
+                "Clock readback differs; inspect the clock before retrying"
+            )
+        return actual
 
     async def get_schedules(self) -> tuple[ScheduleSlot, ...]:
         """Read all stored slots without changing the device."""

@@ -6,6 +6,7 @@ from datetime import datetime
 
 HEADER = b"\x57\xab"
 READ_CLOCK = 0x03
+SET_CLOCK = 0x04
 READ_SCHEDULES = 0x05
 WRITE_SCHEDULES = 0x06
 FEED = 0x0C
@@ -108,6 +109,25 @@ def decode_clock(payload: bytes) -> datetime:
         return datetime(2000 + payload[0], *payload[1:6])
     except ValueError as err:
         raise ProtocolError("Invalid device clock values") from err
+
+
+def clock_payload(value: datetime) -> bytes:
+    """Encode a local wall clock; RTC weekdays use Sunday=0, unlike timers."""
+    if not isinstance(value, datetime) or value.tzinfo is not None:
+        raise ValueError("Clock must be a local datetime without a timezone")
+    if not 2000 <= value.year <= 2099:
+        raise ValueError("The feeder supports clock years 2000–2099")
+    return bytes(
+        [
+            value.year - 2000,
+            value.month,
+            value.day,
+            value.hour,
+            value.minute,
+            value.second,
+            (value.weekday() + 1) % 7,
+        ]
+    )
 
 
 def feed_payload(grams: int) -> bytes:
