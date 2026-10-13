@@ -63,10 +63,10 @@ class FeederCoordinator(DataUpdateCoordinator[datetime]):
             await self.client.close()
             raise UpdateFailed("Unable to read the feeder clock") from err
 
-    async def async_dispense(self) -> None:
+    async def async_dispense(self, quantity: int | None = None) -> None:
         """Send one request; a lost acknowledgement must not trigger a retry."""
         try:
-            await self.client.dispense(self.quantity)
+            await self.client.dispense(self.quantity if quantity is None else quantity)
         except (XlinkError, OSError, TimeoutError, ValueError) as err:
             await self.client.close()
             raise HomeAssistantError(
@@ -111,13 +111,19 @@ class ScheduleCoordinator(DataUpdateCoordinator[tuple[ScheduleSlot, ...]]):
             except (XlinkError, OSError, TimeoutError, ValueError) as err:
                 raise UpdateFailed("Unable to read stored feeding schedules") from err
 
-    async def async_change_slot(self, slot: int, **changes) -> None:
+    async def async_change_slot(
+        self, slot: int, *, expected_slot: ScheduleSlot | None = None, **changes
+    ) -> None:
         """Apply one field to a freshly verified slot, preserving the other four."""
         try:
             async with self._edit_lock:
                 if self.data is None or not self.last_update_success:
                     raise HomeAssistantError("Stored schedules are unavailable")
                 expected = self.data[slot - 1]
+                if expected_slot is not None and expected_slot != expected:
+                    raise HomeAssistantError(
+                        "This meal changed elsewhere. Reload it before saving."
+                    )
                 updated = replace(expected, **changes)
                 actual = await self.client.update_schedule(
                     slot, updated, expected=expected

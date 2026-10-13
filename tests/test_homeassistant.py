@@ -10,13 +10,14 @@ import pytest
 
 pytest.importorskip("homeassistant")
 
-from homeassistant import data_entry_flow, loader
+from homeassistant import auth, data_entry_flow, loader
 from homeassistant.config_entries import ConfigEntries, ConfigEntry, ConfigEntryState
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED, EntityCategory
 from homeassistant.core import CoreState, HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers import device_registry, entity_registry, frame
 from homeassistant.helpers.update_coordinator import UpdateFailed
+from homeassistant.setup import async_setup_component
 
 from custom_components.pettec_local import async_setup_entry
 from custom_components.pettec_local.config_flow import PetTecConfigFlow
@@ -35,10 +36,19 @@ CLOCK = datetime(2026, 10, 13, 12, 0, 0)
 
 
 @pytest.fixture
-async def hass(tmp_path):
+async def hass(tmp_path, unused_tcp_port):
     instance = HomeAssistant(str(tmp_path))
     loader.async_setup(instance)
     instance.config_entries = ConfigEntries(instance, {})
+    device_registry.async_setup(instance)
+    await device_registry.async_load(instance)
+    await entity_registry.async_load(instance)
+    instance.auth = await auth.auth_manager_from_config(instance, [], [])
+    assert await async_setup_component(
+        instance,
+        "http",
+        {"http": {"server_host": "127.0.0.1", "server_port": unused_tcp_port}},
+    )
     yield instance
     for flow in instance.config_entries.options.async_progress():
         instance.config_entries.options.async_abort(flow["flow_id"])
@@ -247,9 +257,6 @@ async def test_quantity_rejects_fractional_or_out_of_range(hass, entry, client):
 
 async def test_quantity_is_saved_without_feeding(hass, entry, client):
     hass.config_entries._entries[entry.entry_id] = entry
-    device_registry.async_setup(hass)
-    await device_registry.async_load(hass)
-    await entity_registry.async_load(hass)
     frame.async_setup(hass)
     with patch("custom_components.pettec_local.FeederClient", return_value=client):
         await hass.config_entries.async_setup(entry.entry_id)
@@ -290,9 +297,6 @@ SCHEDULE_INPUT = {
 async def load_feeder(hass, entry, client):
     """Load actual platforms with a controlled client."""
     hass.config_entries._entries[entry.entry_id] = entry
-    device_registry.async_setup(hass)
-    await device_registry.async_load(hass)
-    await entity_registry.async_load(hass)
     frame.async_setup(hass)
     client.get_schedules.return_value = SCHEDULES
     with patch("custom_components.pettec_local.FeederClient", return_value=client):
@@ -747,3 +751,103 @@ async def test_stale_device_page_edit_refreshes_without_overwriting(
         await entry.runtime_data.schedules.async_change_slot(1, quantity=33)
     assert entry.runtime_data.schedules.data[0] == changed
     client.update_schedule.assert_awaited_once()
+
+
+async def test_card_actions_are_atomic_and_reject_stale_edits(hass, entry, client):
+    await load_feeder(hass, entry, client)
+    registry = entity_registry.async_get(hass)
+    feed = registry.async_get_entity_id("button", DOMAIN, f"{entry.entry_id}_feed")
+    time_entity = registry.async_get_entity_id(
+        "time", DOMAIN, f"{entry.entry_id}_schedule_1_schedule_time"
+    )
+    await hass.services.async_call(
+        DOMAIN, "dispense", {"entity_id": feed, "quantity": 42}, blocking=True
+    )
+    client.dispense.assert_awaited_once_with(42)
+    assert entry.runtime_data.quantity == 10
+    data = {
+        "entity_id": time_entity,
+        "slot": 1,
+        "enabled": True,
+        "hour": 19,
+        "minute": 15,
+        "quantity": 35,
+        "weekdays": 65,
+        "expected": {
+            "enabled": True,
+            "hour": 8,
+            "minute": 30,
+            "quantity": 25,
+            "weekdays": 127,
+        },
+    }
+    await hass.services.async_call(DOMAIN, "save_schedule", data, blocking=True)
+    client.update_schedule.assert_awaited_once_with(
+        1, ScheduleSlot(True, 19, 15, 35, 193), expected=SCHEDULES[0]
+    )
+    assert entry.runtime_data.schedules.data[1:] == SCHEDULES[1:]
+    with pytest.raises(HomeAssistantError, match="changed elsewhere"):
+        await hass.services.async_call(DOMAIN, "save_schedule", data, blocking=True)
+    assert client.update_schedule.await_count == 1
+    with pytest.raises(HomeAssistantError, match="Incorrect PetTec"):
+        await hass.services.async_call(
+            DOMAIN, "dispense", {"entity_id": time_entity, "quantity": 5}, blocking=True
+        )
+    assert client.dispense.await_count == 1
+
+
+@pytest.mark.parametrize("quantity", [0, 201, 1.5, True, "20"])
+async def test_card_rejects_invalid_amount_without_feeding(
+    hass, entry, client, quantity
+):
+    import voluptuous as vol
+
+    await load_feeder(hass, entry, client)
+    feed = entity_registry.async_get(hass).async_get_entity_id(
+        "button", DOMAIN, f"{entry.entry_id}_feed"
+    )
+    with pytest.raises(vol.Invalid):
+        await hass.services.async_call(
+            DOMAIN, "dispense", {"entity_id": feed, "quantity": quantity}, blocking=True
+        )
+    client.dispense.assert_not_called()
+
+
+async def test_card_resource_is_served_and_registration_is_idempotent(
+    hass, entry, client
+):
+    from aiohttp.test_utils import TestClient, TestServer
+
+    from custom_components.pettec_local.dashboard import async_setup_dashboard
+
+    await load_feeder(hass, entry, client)
+    await async_setup_dashboard(hass)
+    async with TestClient(TestServer(hass.http.app)) as http:
+        response = await http.get("/pettec_local/pettec-cards.js?v=0.5.0")
+        assert response.status == 200
+        assert "pettec-schedule-card" in await response.text()
+
+
+async def test_card_respects_entity_control_permissions(hass, entry, client):
+    from unittest.mock import Mock
+
+    from homeassistant.core import Context
+    from homeassistant.exceptions import Unauthorized
+
+    await load_feeder(hass, entry, client)
+    feed = entity_registry.async_get(hass).async_get_entity_id(
+        "button", DOMAIN, f"{entry.entry_id}_feed"
+    )
+    user = SimpleNamespace(
+        permissions=SimpleNamespace(check_entity=Mock(return_value=False))
+    )
+    with patch.object(hass.auth, "async_get_user", return_value=user):
+        with pytest.raises(Unauthorized):
+            await hass.services.async_call(
+                DOMAIN,
+                "dispense",
+                {"entity_id": feed, "quantity": 20},
+                blocking=True,
+                context=Context(user_id="restricted-user"),
+            )
+    client.dispense.assert_not_called()

@@ -1,0 +1,87 @@
+dispense:
+  name: Dispense one portion
+  description: Sends one feeding request without retrying. Check the bowl after any error.
+  fields:
+    entity_id:
+      name: Feed button
+      required: true
+      selector:
+        entity:
+          filter:
+            - integration: pettec_local
+              domain: button
+    quantity:
+      name: Amount
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 200
+          step: 1
+          unit_of_measurement: g
+          mode: box
+save_schedule:
+  name: Save a meal
+  description: Saves and verifies a whole meal. Used by the schedule card with its original values to reject stale edits.
+  fields:
+    entity_id:
+      name: Meal time entity
+      required: true
+      selector:
+        entity:
+          filter:
+            - integration: pettec_local
+              domain: time
+    slot:
+      name: Meal number
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 5
+          step: 1
+    enabled:
+      name: Enabled
+      required: true
+      selector:
+        boolean:
+    hour:
+      name: Hour
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 23
+          step: 1
+    minute:
+      name: Minute
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 59
+          step: 1
+    quantity:
+      name: Amount
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 200
+          step: 1
+          unit_of_measurement: g
+    weekdays:
+      name: Weekday mask
+      description: Monday is bit 0, Sunday is bit 6. Every day is 127.
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 127
+          step: 1
+    expected:
+      name: Original meal
+      description: Original enabled, hour, minute, quantity and weekdays values, supplied by the card.
+      required: true
+      selector:
+        object:

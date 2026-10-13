@@ -186,3 +186,57 @@ The [Xlink evidence ledger](docs/xlink-evidence.md) records the APK digest,
 source classes and DEX offsets. Decompiled Java is investigation material and
 is not distributed in this repository. This project is independent of PetTec,
 Homerun and Xlink.
+
+## Dashboard cards
+
+Version 0.5.0 includes two cards in the integration download:
+
+- **PetTec · Feeding schedule**: five meals, time and amount inputs, individual
+  weekday buttons, enable switches, and a **Save meal** button for each meal.
+  A save writes the whole meal together and verifies it on the feeder. Edits stay
+  local until saved. Conflicting changes are rejected instead of overwritten.
+- **PetTec · Feed now**: a 1–200 g input and **Dispense** button. Each click sends
+  the entered amount once. This does not change the device-page amount setting.
+  An error is never automatically retried; check the bowl before trying again.
+
+After updating in HACS, **restart Home Assistant**, then:
+
+1. Enable Advanced mode in your Home Assistant profile if needed.
+2. Open **Settings → Dashboards → ⋮ → Resources → Add resource**.
+3. Enter `/pettec_local/pettec-cards.js?v=0.5.0` and choose **JavaScript module**.
+4. Refresh your browser, edit a dashboard, and choose **Add card**. Search for
+   **PetTec**, add either card, and select your feeder from its dropdown.
+
+Register the resource only once; both cards use the same file. On a future
+update, change the resource's `v=` value if your browser keeps the old card.
+For dashboards with YAML-managed resources, add the URL under
+`lovelace.resources` with `type: module` instead.
+
+The equivalent card YAML is:
+
+```yaml
+type: custom:pettec-schedule-card
+device_id: YOUR_HOME_ASSISTANT_DEVICE_ID
+```
+
+```yaml
+type: custom:pettec-feed-card
+device_id: YOUR_HOME_ASSISTANT_DEVICE_ID
+```
+
+Both accept an optional `title`. Use the card editor to choose the device without
+copying its ID. These are **dashboard cards**; the device page continues to use
+Home Assistant's standard Configuration controls. No separate HACS frontend
+repository or JavaScript build step is needed.
+
+Card development checks (Node.js 22 or newer):
+
+```sh
+npm ci
+npx playwright install chromium
+npm test
+```
+
+The browser tests use simulated Home Assistant states and service calls; they do
+not connect to or dispense from a real feeder. JavaScript test dependencies are
+not needed by Home Assistant or included in its integration directory.

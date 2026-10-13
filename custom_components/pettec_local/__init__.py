@@ -9,6 +9,7 @@ from homeassistant.exceptions import HomeAssistantError
 
 from .const import CONF_ACCESS_KEY, CONF_SYNC_TIME_STARTUP
 from .coordinator import FeederCoordinator
+from .dashboard import async_setup_dashboard
 from .feeder import FeederClient
 
 PLATFORMS = [
@@ -20,6 +21,12 @@ PLATFORMS = [
     Platform.SWITCH,
 ]
 _LOGGER = logging.getLogger(__name__)
+
+
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Serve the dashboard cards and register their actions."""
+    await async_setup_dashboard(hass)
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
