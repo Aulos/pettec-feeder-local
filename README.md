@@ -189,13 +189,15 @@ Homerun and Xlink.
 
 ## Dashboard cards
 
-Version 0.5.0 includes two cards in the integration download:
+The integration includes two cards in the integration download:
 
 - **PetTec · Feeding schedule**: five meals, time and amount inputs, individual
   weekday buttons, enable switches, and a **Save meal** button for each meal.
   A save writes the whole meal together and verifies it on the feeder. Edits stay
   local until saved. Conflicting changes are rejected instead of overwritten.
-- **PetTec · Feed now**: a 1–200 g input and **Dispense** button. Each click sends
+- **PetTec · Feed now**: a compact card with a feeder illustration, status indicator,
+  a 1–200 g input, and an icon-only **Dispense** button (bowl icon). It follows
+  your Home Assistant theme and switches to a single row in wider cards. Each click sends
   the entered amount once. This does not change the device-page amount setting.
   An error is never automatically retried; check the bowl before trying again.
 
@@ -203,7 +205,7 @@ After updating in HACS, **restart Home Assistant**, then:
 
 1. Enable Advanced mode in your Home Assistant profile if needed.
 2. Open **Settings → Dashboards → ⋮ → Resources → Add resource**.
-3. Enter `/pettec_local/pettec-cards.js?v=0.5.0` and choose **JavaScript module**.
+3. Enter `/pettec_local/pettec-cards.js?v=0.5.1` and choose **JavaScript module**.
 4. Refresh your browser, edit a dashboard, and choose **Add card**. Search for
    **PetTec**, add either card, and select your feeder from its dropdown.
 

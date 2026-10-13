@@ -22,7 +22,33 @@ const CSS = `
   :focus-visible {outline:2px solid var(--primary-color);outline-offset:3px}
   .status {font-size:13px;line-height:1.5;margin:10px 0 0;min-height:20px}
   .error {color:var(--error-color,#db4437)}
-  .feed {display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin-top:20px}
+  :host {container-type:inline-size}
+  .feed-card {padding:14px}
+  .feed-header {display:flex;align-items:center;gap:10px;min-width:0}
+  .feeder-art {width:42px;height:46px;flex:none;color:var(--primary-color)}
+  .feed-heading {min-width:0;flex:1}
+  .feed-heading h2 {font-size:16px;line-height:1.3;margin:0 0 3px;overflow-wrap:anywhere}
+  .feed-caption {font-size:11px;letter-spacing:.04em;color:var(--secondary-text-color)}
+  .feed-state {display:inline-flex;align-items:center;gap:5px;font-size:11px;white-space:nowrap;color:var(--secondary-text-color)}
+  .feed-state::before {content:"";width:6px;height:6px;border-radius:50%;background:var(--primary-color)}
+  .feed-state.offline::before {background:var(--disabled-text-color,#888)}
+  .feed {display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:10px;align-items:end;margin:12px 0 0}
+  .feed label {font-size:11px;gap:4px;min-width:0}
+  .feed input[type=number] {width:100%;font-size:16px;font-weight:500;padding:8px 10px}
+  .feed button {display:flex;align-items:center;justify-content:center;width:44px;height:44px;padding:0}
+  .bowl-icon {width:19px;height:19px;flex:none}
+  .feed-card .status {margin-top:10px;min-height:0;font-size:12px}
+  .feed-card .status:empty {display:none}
+  @container (min-width:460px) {
+    .feed-card {display:grid;grid-template-columns:minmax(0,1fr) minmax(160px,.75fr);align-items:center;gap:14px}
+    .feed {margin:0}
+    .feed-state {display:none}
+    .feed-card .status {grid-column:1/-1;margin-top:0}
+  }
+  @container (max-width:260px) {
+    .feed-state {font-size:0;gap:0}
+    .feed {gap:8px;grid-template-columns:minmax(0,1fr) 44px}
+  }
 `;
 
 function node(tag, text, attrs = {}) {
@@ -31,6 +57,18 @@ function node(tag, text, attrs = {}) {
   for (const [key, value] of Object.entries(attrs)) el.setAttribute(key, value);
   return el;
 }
+function feederGraphic(bowl = false) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", bowl ? "0 0 24 24" : "0 0 48 52");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("class", bowl ? "bowl-icon" : "feeder-art");
+  // Fixed vector artwork, never user-supplied markup.
+  svg.innerHTML = bowl
+    ? '<g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18l-2.5 7h-13zM5 20h14"/><path d="M8 7v1m4-3v3m4-1v1"/></g>'
+    : '<g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="10" y="3" width="28" height="34" rx="7" fill="currentColor" fill-opacity=".08"/><path d="M11 12h26"/><rect x="18" y="18" width="12" height="7" rx="2"/><path d="M21 32h6M24 37v3"/><path d="M7 41h34l-4 8H11z" fill="currentColor" fill-opacity=".13"/><path d="M13 50h22"/></g>';
+  return svg;
+}
+
 function input(label, type, attrs = {}) {
   const wrapper = node("label", label);
   const control = node("input", undefined, {type, ...attrs});
@@ -60,7 +98,7 @@ class PetTecCard extends HTMLElement {
     this.refresh();
   }
   set hass(hass) { this._hass = hass; this.refresh(); }
-  getCardSize() { return this instanceof PetTecFeedCard ? 3 : 10; }
+  getCardSize() { return this instanceof PetTecFeedCard ? 2 : 10; }
   static getConfigElement() { return document.createElement("pettec-card-editor"); }
   static getStubConfig() { return {device_id: ""}; }
   shell(title, description) {
@@ -101,14 +139,23 @@ class PetTecCard extends HTMLElement {
 
 class PetTecFeedCard extends PetTecCard {
   build() {
-    this.shell("Feed now", "Dispense one portion from your feeder.");
+    this.shell("Feed now", "");
+    this.card.className = "feed-card";
+    this.card.replaceChildren();
+    const header = node("div", undefined, {class: "feed-header"});
+    const heading = node("div", undefined, {class: "feed-heading"});
+    heading.append(node("h2", this.config.title || "Feed now"), node("div", "Pet feeder", {class: "feed-caption"}));
+    this.indicator = node("span", "Ready", {class: "feed-state"});
+    header.append(feederGraphic(), heading, this.indicator);
+    this.card.append(header);
     this.feedEntity = this.entity("feed");
     this.quantityEntity = this.entity("quantity");
     const form = node("form", undefined, {class: "feed"});
     const [label, amount] = input("Amount · g", "number", {min: 1, max: 200, step: 1, required: ""});
     this.amount = amount;
     amount.value = this.state(this.quantityEntity) || "10";
-    this.submit = node("button", "Dispense", {class: "primary", type: "submit"});
+    this.submit = node("button", undefined, {class: "primary", type: "submit", "aria-label": "Dispense", title: "Dispense"});
+    this.submit.append(feederGraphic(true));
     this.status = node("div", "", {class: "status", role: "status", "aria-live": "polite"});
     form.append(label, this.submit);
     this.card.append(form, this.status);
@@ -134,6 +181,8 @@ class PetTecFeedCard extends PetTecCard {
   update() {
     if (!this.submit) return;
     const available = this.feedAvailable();
+    this.indicator.textContent = !available ? "Offline" : this.busy ? "Sending" : "Ready";
+    this.indicator.classList.toggle("offline", !available);
     this.submit.disabled = this.busy || !available;
     this.amount.disabled = this.busy || !available;
     if (!available) this.message(this.status, "Feeder unavailable.", true);

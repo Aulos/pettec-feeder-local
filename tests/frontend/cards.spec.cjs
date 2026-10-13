@@ -4,8 +4,16 @@ const path = require('node:path');
 async function setup(page, type = 'pettec-feed-card') {
   await page.setContent(`<style>
     body {margin:16px;background:#f5f6f8;font-family:Arial,sans-serif;--primary-color:#007b82;--primary-text-color:#202a2e;--secondary-text-color:#626c73;--divider-color:#d8e1e2;--card-background-color:white}
-    ha-card {display:block;background:white;border-radius:12px}
+    ha-card {display:block;background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:12px}
   </style>`);
+  await page.addScriptTag({content: `
+    customElements.define('ha-card', class extends HTMLElement {
+      constructor() {
+        super();
+        this.attachShadow({mode:'open'}).innerHTML = '<style>:host{display:block;box-sizing:border-box;background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:12px}</style><slot></slot>';
+      }
+    });
+  `});
   await page.addScriptTag({ path: path.resolve('custom_components/pettec_local/frontend/pettec-cards.js') });
   await page.evaluate(type => {
     const registry = [];
@@ -102,4 +110,45 @@ test('card editor selects a feeder without entering entity IDs', async ({page}) 
   });
   await page.getByLabel('Feeder', {exact:true}).selectOption('feeder');
   expect(await page.evaluate(() => savedConfig)).toEqual({type:'custom:pettec-feed-card',device_id:'feeder'});
+});
+
+test('compact feed card adapts to its container in dark and light themes', async ({page}) => {
+  await setup(page);
+  await page.setViewportSize({width:760,height:1000});
+  await page.evaluate(() => {
+    card.remove();
+    document.body.style.margin = '24px';
+    document.body.style.background = '#101214';
+    const title = document.createElement('h1');
+    title.textContent = 'PetTec · Feed card preview';
+    title.style.cssText = 'color:#e8edef;font-size:20px;margin:0 0 24px';
+    document.body.append(title);
+    for (const [theme, width] of [['dark',240],['dark',360],['dark',600],['light',360]]) {
+      const section = document.createElement('section');
+      section.style.cssText = `width:${width}px;max-width:100%;margin-bottom:24px`;
+      const caption = document.createElement('p');
+      caption.textContent = `${width} px · ${theme}`;
+      caption.style.cssText = 'color:#a3acb2;font-size:12px;margin:0 0 8px';
+      const c = document.createElement('pettec-feed-card');
+      c.style.cssText = theme === 'dark'
+        ? '--primary-color:#00a5c1;--primary-text-color:#e5e8ea;--secondary-text-color:#a4acb3;--divider-color:#394047;--card-background-color:#1c2024'
+        : '--primary-color:#007b82;--primary-text-color:#202a2e;--secondary-text-color:#626c73;--divider-color:#d8e1e2;--card-background-color:#fff';
+      c.setConfig({type:'custom:pettec-feed-card',device_id:'feeder'});
+      section.append(caption,c); document.body.append(section); c.hass = hass;
+    }
+  });
+  await expect(page.getByRole('button',{name:'Dispense',exact:true})).toHaveCount(4);
+  const layout = await page.evaluate(() => [...document.querySelectorAll('pettec-feed-card')].map(c => {
+    const root = c.shadowRoot;
+    const header = root.querySelector('.feed-header').getBoundingClientRect();
+    const form = root.querySelector('.feed').getBoundingClientRect();
+    return {width:c.clientWidth,height:c.clientHeight,overflow:root.querySelector('ha-card').scrollWidth > c.clientWidth,oneRow:form.left > header.left + header.width - 1};
+  }));
+  await page.screenshot({path:'test-results/feed-design-preview.png',fullPage:true});
+  expect(layout.every(item => !item.overflow)).toBe(true);
+  expect(layout[0].height).toBeLessThan(155);
+  expect(layout[1].height).toBeLessThan(155);
+  expect(layout[2].height).toBeLessThan(105);
+  expect(layout[2].oneRow).toBe(true);
+  await page.screenshot({path:'test-results/feed-design-preview.png',fullPage:true});
 });
