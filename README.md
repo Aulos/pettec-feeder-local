@@ -141,6 +141,10 @@ Tests make no connections to PetTec cloud services or a physical feeder. UDP
 tests use localhost, and provisioning tests replace socket operations with a
 simulation.
 
+GitHub's Linux validation completes normally. The macOS investigation environment
+showed a Python shutdown crash after the test assertions passed; its cause remains
+unresolved. A summary of passed assertions alone is not a successful test run.
+
 The [Xlink evidence ledger](docs/xlink-evidence.md) records the APK digest,
 source classes and DEX offsets. Decompiled Java is investigation material and
 is not distributed in this repository. This project is independent of PetTec,

@@ -368,3 +368,14 @@ async def test_schedule_options_require_loaded_integration(hass, entry):
     result = await hass.config_entries.options.async_init(entry.entry_id)
     assert result["type"] == "abort"
     assert result["reason"] == "not_loaded"
+
+
+async def test_schedule_editor_stops_if_integration_is_unloaded(hass, entry, client):
+    result = await start_schedule_editor(hass, entry, client)
+    await hass.config_entries.async_unload(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], SCHEDULE_INPUT
+    )
+    assert result["type"] == "abort"
+    assert result["reason"] == "not_loaded"
+    client.update_schedule.assert_not_awaited()

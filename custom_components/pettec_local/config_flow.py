@@ -6,6 +6,7 @@ from typing import Any
 
 import probatio
 from homeassistant import config_entries
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_HOST
 from homeassistant.core import callback
 from homeassistant.helpers import selector
@@ -139,7 +140,7 @@ class PetTecScheduleOptionsFlow(config_entries.OptionsFlow):
     """Edit one stored timer, with no writes until the user submits it."""
 
     async def async_step_init(self, user_input=None):
-        if not hasattr(self.config_entry, "runtime_data"):
+        if self.config_entry.state is not ConfigEntryState.LOADED:
             return self.async_abort(reason="not_loaded")
         client = self.config_entry.runtime_data.client
         try:
@@ -187,6 +188,8 @@ class PetTecScheduleOptionsFlow(config_entries.OptionsFlow):
         )
 
     async def async_step_schedule(self, user_input=None):
+        if self.config_entry.state is not ConfigEntryState.LOADED:
+            return self.async_abort(reason="not_loaded")
         errors = {}
         client = self.config_entry.runtime_data.client
         if user_input is not None:
