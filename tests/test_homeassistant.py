@@ -1,7 +1,7 @@
 """Exercise the real Home Assistant classes against a controlled feeder client."""
 
 from datetime import datetime
-from types import MappingProxyType
+from types import MappingProxyType, SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -9,7 +9,7 @@ import pytest
 pytest.importorskip("homeassistant")
 
 from homeassistant import data_entry_flow, loader
-from homeassistant.config_entries import ConfigEntries, ConfigEntry
+from homeassistant.config_entries import ConfigEntries, ConfigEntry, ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers import device_registry, entity_registry, frame
@@ -19,7 +19,9 @@ from custom_components.pettec_local import async_setup_entry
 from custom_components.pettec_local.config_flow import PetTecConfigFlow
 from custom_components.pettec_local.const import DOMAIN, MAX_QUANTITY
 from custom_components.pettec_local.coordinator import FeederCoordinator
+from custom_components.pettec_local.feeder import ScheduleChangedError
 from custom_components.pettec_local.number import FeedQuantity
+from custom_components.pettec_local.protocol import ScheduleSlot
 from custom_components.pettec_local.xlink import AuthenticationError, XlinkError
 
 CLOCK = datetime(2026, 10, 13, 12, 0, 0)
@@ -31,6 +33,11 @@ async def hass(tmp_path):
     loader.async_setup(instance)
     instance.config_entries = ConfigEntries(instance, {})
     yield instance
+    for flow in instance.config_entries.options.async_progress():
+        instance.config_entries.options.async_abort(flow["flow_id"])
+    for config_entry in instance.config_entries.async_entries():
+        if config_entry.state == ConfigEntryState.LOADED:
+            await instance.config_entries.async_unload(config_entry.entry_id)
     await instance.async_stop(force=True)
 
 
@@ -52,10 +59,15 @@ def entry():
 
 @pytest.fixture
 def client():
-    mock = AsyncMock()
-    mock.mac = "00:11:22:33:44:55"
-    mock.get_clock.return_value = CLOCK
-    return mock
+    return SimpleNamespace(
+        mac="00:11:22:33:44:55",
+        connect=AsyncMock(),
+        close=AsyncMock(),
+        get_clock=AsyncMock(return_value=CLOCK),
+        dispense=AsyncMock(),
+        get_schedules=AsyncMock(),
+        update_schedule=AsyncMock(),
+    )
 
 
 async def test_config_flow_reads_clock_and_closes_without_feeding(hass, client):
@@ -79,12 +91,12 @@ async def test_config_flow_reads_clock_and_closes_without_feeding(hass, client):
 @pytest.mark.parametrize(
     ("failure", "error"),
     [
-        (AuthenticationError("rejected"), "invalid_auth"),
-        (TimeoutError(), "cannot_connect"),
+        (AuthenticationError, "invalid_auth"),
+        (TimeoutError, "cannot_connect"),
     ],
 )
 async def test_config_flow_connection_error_cleanup(hass, client, failure, error):
-    client.connect.side_effect = failure
+    client.connect.side_effect = failure("test failure")
     flow = PetTecConfigFlow()
     flow.hass = hass
     flow.context = {"source": "user"}
@@ -178,14 +190,14 @@ async def test_coordinator_status_poll_never_dispenses(hass, entry, client):
 @pytest.mark.parametrize(
     ("failure", "expected"),
     [
-        (AuthenticationError("rejected"), ConfigEntryAuthFailed),
-        (TimeoutError(), UpdateFailed),
+        (AuthenticationError, ConfigEntryAuthFailed),
+        (TimeoutError, UpdateFailed),
     ],
 )
 async def test_coordinator_reports_failures_and_closes(
     hass, entry, client, failure, expected
 ):
-    client.get_clock.side_effect = failure
+    client.get_clock.side_effect = failure("test failure")
     coordinator = FeederCoordinator(hass, entry, client)
     with pytest.raises(expected):
         await coordinator._async_update_data()
@@ -237,3 +249,122 @@ async def test_quantity_is_saved_without_feeding(hass, entry, client):
     client.dispense.assert_awaited_once_with(25)
     await hass.config_entries.async_unload(entry.entry_id)
     assert not list(hass.data["number"].entities)
+
+
+SCHEDULES = (
+    ScheduleSlot(True, 8, 30, 25, 0xFF),
+    *(ScheduleSlot(False, 0, 0, 0, 0) for _ in range(4)),
+)
+SCHEDULE_INPUT = {
+    "enabled": True,
+    "time": "09:15:00",
+    "quantity": 30,
+    "weekdays": ["mon", "sun"],
+}
+
+
+async def start_schedule_editor(hass, entry, client):
+    """Use the real options-flow manager and integration lifecycle."""
+    hass.config_entries._entries[entry.entry_id] = entry
+    device_registry.async_setup(hass)
+    await device_registry.async_load(hass)
+    await entity_registry.async_load(hass)
+    frame.async_setup(hass)
+    client.get_schedules.return_value = SCHEDULES
+    with patch("custom_components.pettec_local.FeederClient", return_value=client):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["step_id"] == "init"
+    client.update_schedule.assert_not_awaited()
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"slot": "1"}
+    )
+    assert result["step_id"] == "schedule"
+    assert result["description_placeholders"]["clock"] == CLOCK.isoformat()
+    return result
+
+
+async def test_schedule_options_read_then_save_without_feeding(hass, entry, client):
+    result = await start_schedule_editor(hass, entry, client)
+    assert client.get_schedules.await_count == 2
+    # A number change made while the editor is open must also be preserved.
+    hass.config_entries.async_update_entry(entry, options={"quantity": 67})
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], SCHEDULE_INPUT
+    )
+    assert result["type"] == "create_entry"
+    assert entry.options == {"quantity": 67}
+    client.update_schedule.assert_awaited_once_with(
+        1, ScheduleSlot(True, 9, 15, 30, 0xC1), expected=SCHEDULES[0]
+    )
+    client.dispense.assert_not_awaited()
+
+
+async def test_schedule_options_disable_slot(hass, entry, client):
+    result = await start_schedule_editor(hass, entry, client)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {**SCHEDULE_INPUT, "enabled": False, "weekdays": []}
+    )
+    assert result["type"] == "create_entry"
+    assert not client.update_schedule.await_args.args[1].enabled
+    client.dispense.assert_not_awaited()
+
+
+@pytest.mark.parametrize(
+    "changes", [{"weekdays": []}, {"quantity": 1.5}, {"time": "09:15:30"}]
+)
+async def test_schedule_options_reject_invalid_edits(hass, entry, client, changes):
+    result = await start_schedule_editor(hass, entry, client)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {**SCHEDULE_INPUT, **changes}
+    )
+    assert result["errors"] == {"base": "invalid_schedule"}
+    client.update_schedule.assert_not_awaited()
+    client.dispense.assert_not_awaited()
+
+
+@pytest.mark.parametrize(
+    "failure,error",
+    [
+        (TimeoutError, "cannot_save_schedule"),
+        (ScheduleChangedError, "schedule_changed"),
+        (XlinkError, "cannot_save_schedule"),
+    ],
+)
+async def test_schedule_options_save_failure_is_not_success(
+    hass, entry, client, failure, error
+):
+    result = await start_schedule_editor(hass, entry, client)
+
+    async def fail(*args, **kwargs):
+        raise failure("test failure")
+
+    client.update_schedule.side_effect = fail
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], SCHEDULE_INPUT
+    )
+    assert result["errors"] == {"base": error}
+    client.update_schedule.assert_awaited_once()
+    client.dispense.assert_not_awaited()
+
+
+async def test_schedule_options_read_failure_aborts_without_writing(
+    hass, entry, client
+):
+    result = await start_schedule_editor(hass, entry, client)
+    hass.config_entries.options.async_abort(result["flow_id"])
+    client.get_schedules.side_effect = XlinkError("wrong length")
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == "abort"
+    assert result["reason"] == "cannot_read_schedules"
+    client.update_schedule.assert_not_awaited()
+    client.close.assert_awaited_once()
+
+
+async def test_schedule_options_require_loaded_integration(hass, entry):
+    hass.config_entries._entries[entry.entry_id] = entry
+    frame.async_setup(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == "abort"
+    assert result["reason"] == "not_loaded"

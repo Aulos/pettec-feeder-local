@@ -4,12 +4,17 @@
       "user": {
         "title": "Connect a PetTec PF 05WD",
         "description": "The feeder must already be connected to your Wi-Fi, and you need its numeric Xlink access key. This integration does not provision Wi-Fi or recover keys. Setup only reads the device clock.",
-        "data": {"host": "Feeder IPv4 address", "access_key": "Xlink access key"}
+        "data": {
+          "host": "Feeder IPv4 address",
+          "access_key": "Xlink access key"
+        }
       },
       "reauth_confirm": {
         "title": "Correct the feeder access key",
         "description": "Enter the numeric Xlink access key for this feeder. Verification only reads its clock.",
-        "data": {"access_key": "Xlink access key"}
+        "data": {
+          "access_key": "Xlink access key"
+        }
       }
     },
     "error": {
@@ -26,8 +31,51 @@
     }
   },
   "entity": {
-    "sensor": {"clock": {"name": "Device clock"}},
-    "number": {"quantity": {"name": "Feeding amount"}},
-    "button": {"feed": {"name": "Dispense selected quantity"}}
+    "sensor": {
+      "clock": {
+        "name": "Device clock"
+      }
+    },
+    "number": {
+      "quantity": {
+        "name": "Feeding amount"
+      }
+    },
+    "button": {
+      "feed": {
+        "name": "Dispense selected quantity"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Stored feeding schedules",
+        "description": "Select one of the five schedules read from the feeder. Opening this editor does not change any schedule.",
+        "data": {
+          "slot": "Schedule slot"
+        }
+      },
+      "schedule": {
+        "title": "Edit schedule {slot}",
+        "description": "Times use the feeder clock, last read as {clock}. Check that it shows the correct local date and time before enabling a schedule. Submit writes this slot to the feeder and verifies all five slots; other slots are preserved. To disable this slot, clear Enabled.",
+        "data": {
+          "enabled": "Enabled",
+          "time": "Feeding time",
+          "quantity": "Feeding amount",
+          "weekdays": "Days"
+        }
+      }
+    },
+    "error": {
+      "invalid_schedule": "Choose a time with zero seconds, 1–200 whole grams, and at least one weekday for an enabled schedule.",
+      "schedule_changed": "This slot changed while you were editing it. Cancel and reopen Configure to read its current settings.",
+      "cannot_save_schedule": "Unable to verify the schedule update. Changes may already have been applied. Cancel and reopen Configure to inspect all schedules before trying again."
+    },
+    "abort": {
+      "not_loaded": "Load the integration before opening its schedule editor.",
+      "cannot_read_schedules": "Unable to read all five schedules. No schedules were changed. Check the connection; this firmware may use a different schedule format.",
+      "invalid_schedule": "Choose a schedule slot from 1 to 5."
+    }
   }
 }

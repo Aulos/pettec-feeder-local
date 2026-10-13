@@ -4,9 +4,10 @@ Experimental local integration for the older PetTec PF 05WD feeder, using the
 Xlink protocol recovered from its Android app. This is a different device family
 from the PetTec Cam Buddy / Snoop Cube products.
 
-**No physical feeder has been tested yet.** The tests cover the recovered packet
-formats, a local UDP simulator, and actual Home Assistant setup and entity
-lifecycle. They do not establish that a particular firmware accepts these packets.
+The feeder owner reports successful Wi-Fi provisioning and manual dispensing.
+**Stored schedules have not been tested on hardware yet.** Automated tests cover
+the recovered packet formats, a local UDP simulator, and actual Home Assistant
+setup, schedule forms and entity lifecycle. Firmware behavior can still differ.
 
 ## Features
 
@@ -16,6 +17,8 @@ lifecycle. They do not establish that a particular firmware accepts these packet
 - Saved feeding amount, from 1 to 200 grams, matching the stock app's manual UI.
 - A button that sends one feeding request. Feeding commands are never retried
   automatically after an uncertain result.
+- An editor for five schedules stored on the feeder, with time, quantity,
+  weekdays and an enabled flag for each slot.
 - Separate Wi-Fi provisioning helper and explicit initial access-key assignment.
 
 Requires Home Assistant **2026.10.0 or later**. Framework tests currently use
@@ -36,6 +39,32 @@ Reserve the feeder's IPv4 address in your router so it remains stable.
 
 For manual installation, copy `custom_components/pettec_local` into your Home
 Assistant configuration's `custom_components` directory and restart.
+
+## Stored feeding schedules
+
+Update the integration in HACS and restart Home Assistant. Open **Settings →
+Devices & services → PetTec PF 05WD → Configure**. The editor reads all five
+slots and shows their current settings. Select a slot, choose the time, amount
+in whole grams, weekdays and whether it is enabled, then submit. Open Configure
+again to inspect the stored result or edit another slot.
+
+The time follows the **feeder's own clock**. The form displays the most recent
+clock reading; check that its local date and time are correct before enabling
+any schedule. This version does not set the clock or adjust it for daylight
+saving time. Schedules are intended to run on the feeder without Home Assistant;
+that behavior still needs a hardware test.
+
+Saving reads the current list again, replaces only the selected slot, sends
+one write and reads all five slots back. The other four slots are preserved.
+If the selected slot changed while you were editing, saving is refused. If a
+write or verification fails, the change may already have been applied. Cancel
+and reopen Configure to inspect the current settings before trying again.
+Writes are never automatically retried. Opening or cancelling the editor
+does not write schedules, and saving does not send a manual feeding command.
+
+To disable a slot, clear **Enabled** and submit. Verify the first scheduled
+meal with the feeder attended. Account for every enabled slot and any Home
+Assistant feeding automations to avoid overlapping meals.
 
 ## Feeder is not connected to Wi-Fi
 
@@ -78,10 +107,9 @@ determines delivery accuracy. A transport or command acknowledgement does not
 measure the food that physically reached the bowl.
 
 If a feeding request times out, check the bowl before pressing the button again.
-The first request may already have dispensed food. Existing on-device schedules
-are not changed by this integration, so account for them when creating Home
-Assistant automations. Keep a reliable feeding arrangement until device behavior
-has been tested.
+The first request may already have dispensed food. Manual feeding leaves stored
+schedules unchanged; the Configure editor explicitly changes the selected
+slot. Keep a reliable feeding arrangement until scheduled behavior has been tested.
 
 ## Scope and limitations
 
@@ -91,7 +119,7 @@ are rejected. The network implementation uses the configured address for unicast
 discovery; the original SDK broadcasts, and unicast acceptance is not hardware
 verified. Replies must pass source, MAC, length, checksum and command checks.
 
-There is no cloud fallback, firmware flashing, schedule editing, automatic food
+There is no cloud fallback, firmware flashing, automatic food
 dispensing on reconnect, or key brute-force/recovery. The clock is shown as a
 local wall-clock string because the device does not report its time zone.
 

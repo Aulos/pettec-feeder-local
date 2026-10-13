@@ -90,3 +90,39 @@ Local packets are not encrypted by the APK's inspected builders. Initial key
 assignment sends the key as a plain integer. Source filtering and correlation
 prevent accidental mismatches but are not cryptographic peer authentication.
 The feeder firmware may have additional requirements absent from the app.
+
+## Stored schedules
+
+Schedule observations come from `classes.dex` of the same APK, not
+`classes2.dex`. Decompiled command constructors lost some register names;
+the original Dalvik instructions were checked directly for both opcodes.
+
+| Behavior | Class and method | DEX code_item offset |
+|---|---|---|
+| Read schedules, inner command `05`, empty payload | `cn.xlink.homerun.protocol.CmdManager.getTimerList` | `0x2d9a00` |
+| Read raw schedule bytes, inner command `05` | `CmdManager.getTimerListRawByte` | `0x2d9a50` |
+| Write schedules, inner command `06` | `CmdManager.setTimers` | `0x2da06c` |
+| Require a one-byte reply with status zero for a successful write | `cn.xlink.homerun.mvp.usecase.AbstUpdateTimerUsecase$1.onNext(byte[])` | `0x2cb648` |
+
+`cn.xlink.homerun.model.Timer` and `TimerFactory.timerListToBytes` encode
+six bytes per slot: enabled (`00` or `01`), hour, minute, big-endian u16
+quantity, then weekday bits. `Timer.sWeekDaysMap` maps bits 0 through 6 to
+Monday through Sunday. A stock-app default uses weekday byte `FF`; the
+implementation preserves the high bit instead of interpreting it as a day.
+`cn.xlink.homerun.protocol.app.TimerResponseParser` reads five six-byte slots.
+`AbstUpdateTimerUsecase.updateTimersLists` pads the uploaded list to five
+slots using disabled zero-filled timers.
+
+The integration requires exactly 30 bytes when reading schedules. It preserves
+all untouched records, including quantities outside the editor's 1–200 gram
+range and the high weekday bit. A fresh read detects changes to the selected
+slot before writing. Writes are serialized within one client, acknowledged
+once, and verified by comparing the entire returned list. An already applied
+edit is read and accepted without being retransmitted. There is no protocol
+compare-and-swap, so an external writer can still race the read/write sequence.
+
+The owner reports Wi-Fi provisioning and manual feeding work on their PF05WD.
+Schedule acceptance, persistence across power loss, weekday execution, and
+operation with Home Assistant offline remain unverified. The schedule editor
+uses the device's existing clock and does not change it or handle daylight
+saving time automatically.

@@ -6,12 +6,66 @@ from datetime import datetime
 
 HEADER = b"\x57\xab"
 READ_CLOCK = 0x03
+READ_SCHEDULES = 0x05
+WRITE_SCHEDULES = 0x06
 FEED = 0x0C
 MAX_FEED_GRAMS = 200
+SCHEDULE_COUNT = 5
 
 
 class ProtocolError(ValueError):
     """An invalid or unsupported feeder response."""
+
+
+@dataclass(frozen=True)
+class ScheduleSlot:
+    """One six-byte timer; weekday bits 0 through 6 mean Monday to Sunday."""
+
+    enabled: bool
+    hour: int
+    minute: int
+    quantity: int
+    weekdays: int
+
+    def __post_init__(self) -> None:
+        if type(self.enabled) is not bool:
+            raise ProtocolError("Schedule enabled must be a boolean")
+        for value, maximum in (
+            (self.hour, 23),
+            (self.minute, 59),
+            (self.quantity, 65535),
+            (self.weekdays, 255),
+        ):
+            if type(value) is not int or not 0 <= value <= maximum:
+                raise ProtocolError("Invalid schedule field")
+
+    def to_bytes(self) -> bytes:
+        return struct.pack(
+            ">BBBHB", self.enabled, self.hour, self.minute, self.quantity, self.weekdays
+        )
+
+
+def decode_schedules(payload: bytes) -> tuple[ScheduleSlot, ...]:
+    """Require all five slots before permitting a read/modify/write operation."""
+    if len(payload) != SCHEDULE_COUNT * 6:
+        raise ProtocolError("Expected five six-byte schedule slots")
+    slots = []
+    for offset in range(0, len(payload), 6):
+        enabled, hour, minute, quantity, weekdays = struct.unpack(
+            ">BBBHB", payload[offset : offset + 6]
+        )
+        if enabled not in (0, 1):
+            raise ProtocolError("Unknown schedule enabled flag")
+        slots.append(ScheduleSlot(bool(enabled), hour, minute, quantity, weekdays))
+    return tuple(slots)
+
+
+def encode_schedules(slots: tuple[ScheduleSlot, ...]) -> bytes:
+    if len(slots) != SCHEDULE_COUNT or any(
+        not isinstance(slot, ScheduleSlot) for slot in slots
+    ):
+        raise ProtocolError("Expected five schedule slots")
+    return b"".join(slot.to_bytes() for slot in slots)
 
 
 @dataclass(frozen=True)
