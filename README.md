@@ -104,7 +104,7 @@ configuration storage.
 
 ```sh
 python3.14 -m venv .venv
-.venv/bin/python -m pip install -e '.[homeassistant-test]' ruff
+.venv/bin/python -m pip install '.[homeassistant-test]' ruff
 .venv/bin/python -m pytest -q
 .venv/bin/ruff check .
 ```
