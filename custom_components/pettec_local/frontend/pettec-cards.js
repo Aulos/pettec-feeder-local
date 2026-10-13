@@ -41,7 +41,8 @@ const TRANSLATIONS = {
     "PetTec · Feed now": "PetTec · Nakarm teraz",
     "PetTec · Feeding schedule": "PetTec · Harmonogram karmienia",
     "Choose an amount and dispense one portion.": "Wybierz ilość karmy i podaj jedną porcję.",
-    "Edit five meals with weekday selection.": "Ustaw pięć posiłków i wybierz dni tygodnia."
+    "Edit five meals with weekday selection.": "Ustaw pięć posiłków i wybierz dni tygodnia.",
+    "Open feeder device page": "Otwórz stronę urządzenia karmnika"
   },
   "de": {
     "Feed now": "Jetzt füttern",
@@ -83,7 +84,8 @@ const TRANSLATIONS = {
     "PetTec · Feed now": "PetTec · Jetzt füttern",
     "PetTec · Feeding schedule": "PetTec · Fütterungsplan",
     "Choose an amount and dispense one portion.": "Wählen Sie eine Futtermenge und geben Sie eine Portion aus.",
-    "Edit five meals with weekday selection.": "Fünf Mahlzeiten einrichten und Wochentage auswählen."
+    "Edit five meals with weekday selection.": "Fünf Mahlzeiten einrichten und Wochentage auswählen.",
+    "Open feeder device page": "Geräteseite des Futterautomaten öffnen"
   },
   "fr": {
     "Feed now": "Nourrir maintenant",
@@ -125,7 +127,8 @@ const TRANSLATIONS = {
     "PetTec · Feed now": "PetTec · Nourrir maintenant",
     "PetTec · Feeding schedule": "PetTec · Programme de repas",
     "Choose an amount and dispense one portion.": "Choisissez une quantité et distribuez une portion.",
-    "Edit five meals with weekday selection.": "Modifiez cinq repas et choisissez les jours de la semaine."
+    "Edit five meals with weekday selection.": "Modifiez cinq repas et choisissez les jours de la semaine.",
+    "Open feeder device page": "Ouvrir la page de l’appareil"
   },
   "uk": {
     "Feed now": "Годувати зараз",
@@ -167,7 +170,8 @@ const TRANSLATIONS = {
     "PetTec · Feed now": "PetTec · Годувати зараз",
     "PetTec · Feeding schedule": "PetTec · Розклад годування",
     "Choose an amount and dispense one portion.": "Виберіть кількість корму та видайте одну порцію.",
-    "Edit five meals with weekday selection.": "Налаштуйте п’ять годувань і виберіть дні тижня."
+    "Edit five meals with weekday selection.": "Налаштуйте п’ять годувань і виберіть дні тижня.",
+    "Open feeder device page": "Відкрити сторінку пристрою годівниці"
   }
 };
 function translate(hass, text) {
@@ -202,6 +206,10 @@ const CSS = `
   .feed-header {display:flex;align-items:center;gap:10px;min-width:0}
   .feeder-art {width:42px;height:46px;flex:none;color:var(--primary-color)}
   .feed-heading {min-width:0;flex:1}
+  .device-link {display:inline-flex;align-items:center;gap:5px;min-width:0;color:inherit;text-decoration:none}
+  .device-link:hover span {color:var(--primary-color)}
+  .device-link:focus-visible {outline:2px solid var(--primary-color);outline-offset:3px;border-radius:2px}
+  .device-link span {color:var(--secondary-text-color);font-size:14px}
   .feed-heading h2 {font-size:16px;line-height:1.3;margin:0 0 3px;overflow-wrap:anywhere}
   .feed-caption {font-size:11px;letter-spacing:.04em;color:var(--secondary-text-color)}
   .feed-state {display:inline-flex;align-items:center;gap:5px;font-size:11px;white-space:nowrap;color:var(--secondary-text-color)}
@@ -280,8 +288,19 @@ class PetTecCard extends HTMLElement {
   shell(title, description) {
     this.shadowRoot.replaceChildren(node("style", CSS));
     this.card = node("ha-card");
-    this.card.append(node("h2", this.config.title || title), node("p", description));
+    this.card.append(this.deviceHeading(this.config.title || title), node("p", description));
     this.shadowRoot.append(this.card);
+  }
+  deviceHeading(title) {
+    if (!this.config.device_id) return node("h2", title);
+    const link = node("a", undefined, {
+      class: "device-link",
+      href: `/config/devices/device/${encodeURIComponent(this.config.device_id)}`,
+      title: this.t("Open feeder device page"),
+      "aria-label": this.t("Open feeder device page"),
+    });
+    link.append(node("h2", title), node("span", "↗", {"aria-hidden": "true"}));
+    return link;
   }
   async refresh() {
     if (!this.config || !this._hass || this.loading) return;
@@ -320,7 +339,7 @@ class PetTecFeedCard extends PetTecCard {
     this.card.replaceChildren();
     const header = node("div", undefined, {class: "feed-header"});
     const heading = node("div", undefined, {class: "feed-heading"});
-    heading.append(node("h2", this.config.title || this.t("Feed now")), node("div", this.t("Pet feeder"), {class: "feed-caption"}));
+    heading.append(this.deviceHeading(this.config.title || this.t("Feed now")), node("div", this.t("Pet feeder"), {class: "feed-caption"}));
     this.indicator = node("span", this.t("Ready"), {class: "feed-state"});
     header.append(feederGraphic(), heading, this.indicator);
     this.card.append(header);

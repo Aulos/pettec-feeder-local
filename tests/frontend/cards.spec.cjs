@@ -61,6 +61,14 @@ test('feed uses entered amount exactly once while pending and never retries erro
   expect(await page.evaluate(() => calls.length)).toBe(1);
 });
 
+test('card titles link to the selected feeder device page', async ({page}) => {
+  await setup(page);
+  await expect(page.locator('pettec-feed-card').locator('a.device-link')).toHaveAttribute('href', '/config/devices/device/feeder');
+  await expect(page.locator('pettec-feed-card').locator('a.device-link')).toHaveAccessibleName('Open feeder device page');
+  await setup(page, 'pettec-schedule-card');
+  await expect(page.locator('pettec-schedule-card').locator('a.device-link')).toHaveAttribute('href', '/config/devices/device/feeder');
+});
+
 test('invalid feed amount and unavailable feeder cannot dispense', async ({page}) => {
   await setup(page);
   await page.getByLabel('Amount · g').fill('201');

@@ -218,7 +218,7 @@ configuration manually (the integration does not edit YAML):
 lovelace:
   resource_mode: yaml
   resources:
-    - url: /pettec_local/pettec-cards.js?v=0.5.4
+    - url: /pettec_local/pettec-cards.js?v=0.5.5
       type: module
 ```
 
@@ -240,8 +240,9 @@ device_id: YOUR_HOME_ASSISTANT_DEVICE_ID
 
 Both accept an optional `title`. Use the card editor to choose the device without
 copying its ID. These are **dashboard cards**; the device page continues to use
-Home Assistant's standard Configuration controls. No separate HACS frontend
-repository or JavaScript build step is needed.
+Home Assistant's standard Configuration controls. The card title links directly to
+the selected device page. No separate HACS frontend repository or JavaScript build
+step is needed.
 
 Card development checks (Node.js 22 or newer):
 
