@@ -1,5 +1,51 @@
 /* PetTec cards: no build step or external runtime dependencies. */
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const POLISH = {
+  "Feed now": "Nakarm teraz",
+  "Pet feeder": "Karmnik",
+  "Ready": "Gotowy",
+  "Offline": "Niedostępny",
+  "Sending": "Wysyłanie",
+  "Sending…": "Wysyłanie…",
+  "Amount · g": "Ilość · g",
+  "Dispense": "Podaj karmę",
+  "Dispense request acknowledged.": "Karmnik potwierdził przyjęcie polecenia.",
+  "Feeder unavailable.": "Karmnik jest niedostępny.",
+  "Feeding schedule": "Harmonogram karmienia",
+  "Saved on the feeder. Choose days, then save each meal.": "Zapisany w karmniku. Wybierz dni i zapisz każdy posiłek.",
+  "Time": "Godzina",
+  "Enabled": "Włączony",
+  "Save meal": "Zapisz posiłek",
+  "Meal {slot}": "Posiłek {slot}",
+  "Meal {slot} weekdays": "Dni tygodnia posiłku {slot}",
+  "Mon": "Pon.",
+  "Tue": "Wt.",
+  "Wed": "Śr.",
+  "Thu": "Czw.",
+  "Fri": "Pt.",
+  "Sat": "Sob.",
+  "Sun": "Niedz.",
+  "Schedule unavailable.": "Harmonogram jest niedostępny.",
+  "This meal changed elsewhere. Review its refreshed values before saving.": "Ten posiłek zmieniono w innym miejscu. Sprawdź aktualne wartości przed zapisaniem.",
+  "Choose at least one weekday for an enabled meal.": "Wybierz co najmniej jeden dzień tygodnia dla włączonego posiłku.",
+  "Saving…": "Zapisywanie…",
+  "Saved and verified on the feeder.": "Zapisano i potwierdzono ustawienia w karmniku.",
+  "Choose a feeder in the card editor.": "Wybierz karmnik w edytorze karty.",
+  "Feeder ": "Karmnik ",
+  "Feeder": "Karmnik",
+  "Choose a feeder": "Wybierz karmnik",
+  "Check the bowl before trying again; food may already have been dispensed.": "Przed kolejną próbą sprawdź miskę — karma mogła już zostać podana.",
+  "Review the feeder state before trying again.": "Przed kolejną próbą sprawdź aktualny stan karmnika.",
+  "Unrecognized weekday state. Reload the card.": "Nieznany format dni tygodnia. Odśwież kartę.",
+  "PetTec · Feed now": "PetTec · Nakarm teraz",
+  "PetTec · Feeding schedule": "PetTec · Harmonogram karmienia",
+  "Choose an amount and dispense one portion.": "Wybierz ilość karmy i podaj jedną porcję.",
+  "Edit five meals with weekday selection.": "Ustaw pięć posiłków i wybierz dni tygodnia."
+};
+function translate(hass, text) {
+  const language = hass?.locale?.language || hass?.language || "en";
+  return language.toLowerCase().split(/[-_]/)[0] === "pl" ? (POLISH[text] || text) : text;
+}
 const CSS = `
   :host {display:block;color:var(--primary-text-color);font-family:inherit}
   ha-card {padding:20px;overflow:hidden}
@@ -98,6 +144,7 @@ class PetTecCard extends HTMLElement {
     this.refresh();
   }
   set hass(hass) { this._hass = hass; this.refresh(); }
+  t(text) { return translate(this._hass, text); }
   getCardSize() { return this instanceof PetTecFeedCard ? 2 : 10; }
   static getConfigElement() { return document.createElement("pettec-card-editor"); }
   static getStubConfig() { return {device_id: ""}; }
@@ -110,7 +157,7 @@ class PetTecCard extends HTMLElement {
   async refresh() {
     if (!this.config || !this._hass || this.loading) return;
     if (!this.config.device_id) {
-      this.shell("PetTec", "Choose a feeder in the card editor.");
+      this.shell("PetTec", this.t("Choose a feeder in the card editor."));
       return;
     }
     if (!this.registry) {
@@ -139,22 +186,22 @@ class PetTecCard extends HTMLElement {
 
 class PetTecFeedCard extends PetTecCard {
   build() {
-    this.shell("Feed now", "");
+    this.shell(this.t("Feed now"), "");
     this.card.className = "feed-card";
     this.card.replaceChildren();
     const header = node("div", undefined, {class: "feed-header"});
     const heading = node("div", undefined, {class: "feed-heading"});
-    heading.append(node("h2", this.config.title || "Feed now"), node("div", "Pet feeder", {class: "feed-caption"}));
-    this.indicator = node("span", "Ready", {class: "feed-state"});
+    heading.append(node("h2", this.config.title || this.t("Feed now")), node("div", this.t("Pet feeder"), {class: "feed-caption"}));
+    this.indicator = node("span", this.t("Ready"), {class: "feed-state"});
     header.append(feederGraphic(), heading, this.indicator);
     this.card.append(header);
     this.feedEntity = this.entity("feed");
     this.quantityEntity = this.entity("quantity");
     const form = node("form", undefined, {class: "feed"});
-    const [label, amount] = input("Amount · g", "number", {min: 1, max: 200, step: 1, required: ""});
+    const [label, amount] = input(this.t("Amount · g"), "number", {min: 1, max: 200, step: 1, required: ""});
     this.amount = amount;
     amount.value = this.state(this.quantityEntity) || "10";
-    this.submit = node("button", undefined, {class: "primary", type: "submit", "aria-label": "Dispense", title: "Dispense"});
+    this.submit = node("button", undefined, {class: "primary", type: "submit", "aria-label": this.t("Dispense"), title: this.t("Dispense")});
     this.submit.append(feederGraphic(true));
     this.status = node("div", "", {class: "status", role: "status", "aria-live": "polite"});
     form.append(label, this.submit);
@@ -163,14 +210,14 @@ class PetTecFeedCard extends PetTecCard {
       event.preventDefault();
       if (this.busy || !form.reportValidity() || !this.feedAvailable()) return;
       this.busy = true; this.update();
-      this.message(this.status, "Sending…");
+      this.message(this.status, this.t("Sending…"));
       try {
         await this._hass.callService("pettec_local", "dispense", {
           entity_id: this.feedEntity, quantity: Number(amount.value),
         });
-        this.message(this.status, "Dispense request acknowledged.");
+        this.message(this.status, this.t("Dispense request acknowledged."));
       } catch (error) {
-        this.message(this.status, `${error.message || error} Check the bowl before trying again; food may already have been dispensed.`, true);
+        this.message(this.status, `${this.t("Check the bowl before trying again; food may already have been dispensed.")} ${error.message || error}`, true);
       } finally { this.busy = false; this.update(); }
     });
   }
@@ -181,36 +228,36 @@ class PetTecFeedCard extends PetTecCard {
   update() {
     if (!this.submit) return;
     const available = this.feedAvailable();
-    this.indicator.textContent = !available ? "Offline" : this.busy ? "Sending" : "Ready";
+    this.indicator.textContent = !available ? this.t("Offline") : this.busy ? this.t("Sending") : this.t("Ready");
     this.indicator.classList.toggle("offline", !available);
     this.submit.disabled = this.busy || !available;
     this.amount.disabled = this.busy || !available;
-    if (!available) this.message(this.status, "Feeder unavailable.", true);
-    else if (this.status.textContent === "Feeder unavailable.") this.message(this.status, "");
+    if (!available) this.message(this.status, this.t("Feeder unavailable."), true);
+    else if (this.status.textContent === this.t("Feeder unavailable.")) this.message(this.status, "");
   }
 }
 
 class PetTecScheduleCard extends PetTecCard {
   build() {
-    this.shell("Feeding schedule", "Saved on the feeder. Choose days, then save each meal.");
+    this.shell(this.t("Feeding schedule"), this.t("Saved on the feeder. Choose days, then save each meal."));
     this.rows = [];
     for (let slot = 1; slot <= 5; slot++) {
       const form = node("form");
       const fieldset = node("fieldset");
-      fieldset.append(node("legend", `Meal ${slot}`));
+      fieldset.append(node("legend", this.t("Meal {slot}").replace("{slot}", slot)));
       const fields = node("div", undefined, {class: "fields"});
-      const [timeLabel, time] = input("Time", "time", {required: "", step: 60});
-      const [amountLabel, amount] = input("Amount · g", "number", {min: 1, max: 200, step: 1, required: ""});
-      const [enabledLabel, enabled] = input("Enabled", "checkbox");
+      const [timeLabel, time] = input(this.t("Time"), "time", {required: "", step: 60});
+      const [amountLabel, amount] = input(this.t("Amount · g"), "number", {min: 1, max: 200, step: 1, required: ""});
+      const [enabledLabel, enabled] = input(this.t("Enabled"), "checkbox");
       enabledLabel.className = "enabled";
       fields.append(timeLabel, amountLabel, enabledLabel);
-      const days = node("div", undefined, {class: "days", role: "group", "aria-label": `Meal ${slot} weekdays`});
+      const days = node("div", undefined, {class: "days", role: "group", "aria-label": this.t("Meal {slot} weekdays").replace("{slot}", slot)});
       const buttons = DAYS.map(day => {
-        const button = node("button", day, {type: "button", "aria-pressed": "false"});
+        const button = node("button", this.t(day), {type: "button", "aria-pressed": "false"});
         days.append(button);
         return button;
       });
-      const save = node("button", "Save meal", {type: "submit", class: "primary"});
+      const save = node("button", this.t("Save meal"), {type: "submit", class: "primary"});
       const status = node("div", "", {class: "status", role: "status", "aria-live": "polite"});
       fieldset.append(fields, days, save, status); form.append(fieldset); this.card.append(form);
       const ids = ["time", "amount", "days", "enabled"].map(field => this.entity(`schedule_${slot}_schedule_${field}`));
@@ -229,8 +276,8 @@ class PetTecScheduleCard extends PetTecCard {
       const values = this.snapshot(row);
       const available = values.every(value => value !== null);
       row.fieldset.disabled = row.busy || !available;
-      if (!available) {this.message(row.status, "Schedule unavailable.", true); continue;}
-      if (row.status.textContent === "Schedule unavailable.") this.message(row.status, "");
+      if (!available) {this.message(row.status, this.t("Schedule unavailable."), true); continue;}
+      if (row.status.textContent === this.t("Schedule unavailable.")) this.message(row.status, "");
       if (row.dirty || row.busy) continue;
       row.baseline = JSON.stringify(values);
       row.time.value = values[0].slice(0, 5);
@@ -239,19 +286,19 @@ class PetTecScheduleCard extends PetTecCard {
       try {
         const mask = maskFor(values[2]);
         row.buttons.forEach((button, bit) => button.setAttribute("aria-pressed", String(Boolean(mask & (1 << bit)))));
-      } catch (error) {row.fieldset.disabled = true; this.message(row.status, error.message, true);}
+      } catch (error) {row.fieldset.disabled = true; this.message(row.status, this.t(error.message), true);}
     }
   }
   async save(row) {
     if (row.busy || !row.form.reportValidity()) return;
     if (JSON.stringify(this.snapshot(row)) !== row.baseline) {
       row.dirty = false; this.update();
-      this.message(row.status, "This meal changed elsewhere. Review its refreshed values before saving.", true); return;
+      this.message(row.status, this.t("This meal changed elsewhere. Review its refreshed values before saving."), true); return;
     }
     const weekdays = row.buttons.reduce((mask, button, bit) => mask | (button.getAttribute("aria-pressed") === "true" ? 1 << bit : 0), 0);
-    if (row.enabled.checked && !weekdays) {this.message(row.status, "Choose at least one weekday for an enabled meal.", true); return;}
+    if (row.enabled.checked && !weekdays) {this.message(row.status, this.t("Choose at least one weekday for an enabled meal."), true); return;}
     const [hour, minute] = row.time.value.split(":").map(Number);
-    row.busy = true; this.update(); this.message(row.status, "Saving…");
+    row.busy = true; this.update(); this.message(row.status, this.t("Saving…"));
     try {
       await this._hass.callService("pettec_local", "save_schedule", {
         entity_id: row.ids[0], slot: row.slot, enabled: row.enabled.checked,
@@ -263,15 +310,16 @@ class PetTecScheduleCard extends PetTecCard {
         hour, minute, quantity: Number(row.amount.value), weekdays,
       });
       row.dirty = false;
-      this.message(row.status, "Saved and verified on the feeder.");
+      this.message(row.status, this.t("Saved and verified on the feeder."));
     } catch (error) {
-      this.message(row.status, `${error.message || error} Review the feeder state before trying again.`, true);
+      this.message(row.status, `${this.t("Review the feeder state before trying again.")} ${error.message || error}`, true);
       row.dirty = false;
     } finally {row.busy = false; this.update();}
   }
 }
 
 class PetTecCardEditor extends HTMLElement {
+  t(text) { return translate(this._hass, text); }
   setConfig(config) {
     this.config = {...config};
     if (this.select) this.select.value = config.device_id || "";
@@ -285,9 +333,9 @@ class PetTecCardEditor extends HTMLElement {
       hass.callWS({type: "config/device_registry/list"}),
     ]).then(([entities, devices]) => {
       const ids = new Set(entities.filter(e => e.platform === "pettec_local").map(e => e.device_id));
-      const label = node("label", "Feeder ");
-      this.select = node("select", undefined, {"aria-label": "Feeder"});
-      this.select.append(node("option", "Choose a feeder", {value: ""}));
+      const label = node("label", this.t("Feeder "));
+      this.select = node("select", undefined, {"aria-label": this.t("Feeder")});
+      this.select.append(node("option", this.t("Choose a feeder"), {value: ""}));
       devices.filter(device => ids.has(device.id)).forEach(device => {
         this.select.append(node("option", device.name_by_user || device.name || device.id, {value: device.id}));
       });
@@ -309,5 +357,5 @@ for (const [type, name, description] of [
   ["pettec-feed-card", "PetTec · Feed now", "Choose an amount and dispense one portion."],
   ["pettec-schedule-card", "PetTec · Feeding schedule", "Edit five meals with weekday selection."],
 ]) {
-  if (!window.customCards.some(card => card.type === type)) window.customCards.push({type, name, description, preview: true});
+  if (!window.customCards.some(card => card.type === type)) window.customCards.push({type, name: translate(document.querySelector("home-assistant")?.hass, name), description: translate(document.querySelector("home-assistant")?.hass, description), preview: true});
 }

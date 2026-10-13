@@ -1,0 +1,315 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Połącz karmnik PetTec PF 05WD",
+        "description": "Karmnik musi być już połączony z siecią Wi-Fi. Potrzebny jest jego numeryczny klucz dostępu Xlink. Integracja nie konfiguruje Wi-Fi ani nie odzyskuje kluczy. Podczas konfiguracji odczytywany jest tylko zegar urządzenia.",
+        "data": {
+          "host": "Adres IPv4 karmnika",
+          "access_key": "Klucz dostępu Xlink"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Popraw klucz dostępu do karmnika",
+        "description": "Wpisz numeryczny klucz dostępu Xlink tego karmnika. Weryfikacja polega wyłącznie na odczytaniu jego zegara.",
+        "data": {
+          "access_key": "Klucz dostępu Xlink"
+        }
+      }
+    },
+    "error": {
+      "invalid_host": "Wpisz adres IPv4 karmnika, na przykład 192.168.1.50.",
+      "cannot_connect": "Nie można się połączyć. Sprawdź, czy karmnik jest połączony z Wi-Fi i dostępny z Home Assistant.",
+      "invalid_auth": "Klucz dostępu musi być liczbą od 1 do 999999999 i odpowiadać kluczowi karmnika.",
+      "unsupported_device": "To urządzenie nie jest obsługiwanym karmnikiem PetTec PF 05WD.",
+      "unknown": "Nie można odczytać zegara karmnika. Ta wersja oprogramowania urządzenia może używać innego protokołu."
+    },
+    "abort": {
+      "already_configured": "Ten karmnik jest już skonfigurowany.",
+      "reauth_successful": "Klucz dostępu został zaktualizowany.",
+      "wrong_account": "To inny karmnik."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "clock": {
+        "name": "Zegar urządzenia"
+      }
+    },
+    "number": {
+      "quantity": {
+        "name": "Ilość karmy"
+      },
+      "schedule_amount": {
+        "name": "Posiłek {slot} — ilość karmy"
+      }
+    },
+    "button": {
+      "feed": {
+        "name": "Podaj wybraną ilość karmy"
+      },
+      "sync_clock": {
+        "name": "Synchronizuj zegar urządzenia"
+      }
+    },
+    "time": {
+      "schedule_time": {
+        "name": "Posiłek {slot} — godzina"
+      }
+    },
+    "select": {
+      "schedule_days": {
+        "name": "Posiłek {slot} — dni tygodnia",
+        "state": {
+          "Every day": "Codziennie",
+          "Monday–Friday": "Poniedziałek–piątek",
+          "Saturday–Sunday": "Sobota–niedziela",
+          "No days": "Brak dni",
+          "Mon": "pon.",
+          "Tue": "wt.",
+          "Mon, Tue": "pon., wt.",
+          "Wed": "śr.",
+          "Mon, Wed": "pon., śr.",
+          "Tue, Wed": "wt., śr.",
+          "Mon, Tue, Wed": "pon., wt., śr.",
+          "Thu": "czw.",
+          "Mon, Thu": "pon., czw.",
+          "Tue, Thu": "wt., czw.",
+          "Mon, Tue, Thu": "pon., wt., czw.",
+          "Wed, Thu": "śr., czw.",
+          "Mon, Wed, Thu": "pon., śr., czw.",
+          "Tue, Wed, Thu": "wt., śr., czw.",
+          "Mon, Tue, Wed, Thu": "pon., wt., śr., czw.",
+          "Fri": "pt.",
+          "Mon, Fri": "pon., pt.",
+          "Tue, Fri": "wt., pt.",
+          "Mon, Tue, Fri": "pon., wt., pt.",
+          "Wed, Fri": "śr., pt.",
+          "Mon, Wed, Fri": "pon., śr., pt.",
+          "Tue, Wed, Fri": "wt., śr., pt.",
+          "Mon, Tue, Wed, Fri": "pon., wt., śr., pt.",
+          "Thu, Fri": "czw., pt.",
+          "Mon, Thu, Fri": "pon., czw., pt.",
+          "Tue, Thu, Fri": "wt., czw., pt.",
+          "Mon, Tue, Thu, Fri": "pon., wt., czw., pt.",
+          "Wed, Thu, Fri": "śr., czw., pt.",
+          "Mon, Wed, Thu, Fri": "pon., śr., czw., pt.",
+          "Tue, Wed, Thu, Fri": "wt., śr., czw., pt.",
+          "Sat": "sob.",
+          "Mon, Sat": "pon., sob.",
+          "Tue, Sat": "wt., sob.",
+          "Mon, Tue, Sat": "pon., wt., sob.",
+          "Wed, Sat": "śr., sob.",
+          "Mon, Wed, Sat": "pon., śr., sob.",
+          "Tue, Wed, Sat": "wt., śr., sob.",
+          "Mon, Tue, Wed, Sat": "pon., wt., śr., sob.",
+          "Thu, Sat": "czw., sob.",
+          "Mon, Thu, Sat": "pon., czw., sob.",
+          "Tue, Thu, Sat": "wt., czw., sob.",
+          "Mon, Tue, Thu, Sat": "pon., wt., czw., sob.",
+          "Wed, Thu, Sat": "śr., czw., sob.",
+          "Mon, Wed, Thu, Sat": "pon., śr., czw., sob.",
+          "Tue, Wed, Thu, Sat": "wt., śr., czw., sob.",
+          "Mon, Tue, Wed, Thu, Sat": "pon., wt., śr., czw., sob.",
+          "Fri, Sat": "pt., sob.",
+          "Mon, Fri, Sat": "pon., pt., sob.",
+          "Tue, Fri, Sat": "wt., pt., sob.",
+          "Mon, Tue, Fri, Sat": "pon., wt., pt., sob.",
+          "Wed, Fri, Sat": "śr., pt., sob.",
+          "Mon, Wed, Fri, Sat": "pon., śr., pt., sob.",
+          "Tue, Wed, Fri, Sat": "wt., śr., pt., sob.",
+          "Mon, Tue, Wed, Fri, Sat": "pon., wt., śr., pt., sob.",
+          "Thu, Fri, Sat": "czw., pt., sob.",
+          "Mon, Thu, Fri, Sat": "pon., czw., pt., sob.",
+          "Tue, Thu, Fri, Sat": "wt., czw., pt., sob.",
+          "Mon, Tue, Thu, Fri, Sat": "pon., wt., czw., pt., sob.",
+          "Wed, Thu, Fri, Sat": "śr., czw., pt., sob.",
+          "Mon, Wed, Thu, Fri, Sat": "pon., śr., czw., pt., sob.",
+          "Tue, Wed, Thu, Fri, Sat": "wt., śr., czw., pt., sob.",
+          "Mon, Tue, Wed, Thu, Fri, Sat": "pon., wt., śr., czw., pt., sob.",
+          "Sun": "niedz.",
+          "Mon, Sun": "pon., niedz.",
+          "Tue, Sun": "wt., niedz.",
+          "Mon, Tue, Sun": "pon., wt., niedz.",
+          "Wed, Sun": "śr., niedz.",
+          "Mon, Wed, Sun": "pon., śr., niedz.",
+          "Tue, Wed, Sun": "wt., śr., niedz.",
+          "Mon, Tue, Wed, Sun": "pon., wt., śr., niedz.",
+          "Thu, Sun": "czw., niedz.",
+          "Mon, Thu, Sun": "pon., czw., niedz.",
+          "Tue, Thu, Sun": "wt., czw., niedz.",
+          "Mon, Tue, Thu, Sun": "pon., wt., czw., niedz.",
+          "Wed, Thu, Sun": "śr., czw., niedz.",
+          "Mon, Wed, Thu, Sun": "pon., śr., czw., niedz.",
+          "Tue, Wed, Thu, Sun": "wt., śr., czw., niedz.",
+          "Mon, Tue, Wed, Thu, Sun": "pon., wt., śr., czw., niedz.",
+          "Fri, Sun": "pt., niedz.",
+          "Mon, Fri, Sun": "pon., pt., niedz.",
+          "Tue, Fri, Sun": "wt., pt., niedz.",
+          "Mon, Tue, Fri, Sun": "pon., wt., pt., niedz.",
+          "Wed, Fri, Sun": "śr., pt., niedz.",
+          "Mon, Wed, Fri, Sun": "pon., śr., pt., niedz.",
+          "Tue, Wed, Fri, Sun": "wt., śr., pt., niedz.",
+          "Mon, Tue, Wed, Fri, Sun": "pon., wt., śr., pt., niedz.",
+          "Thu, Fri, Sun": "czw., pt., niedz.",
+          "Mon, Thu, Fri, Sun": "pon., czw., pt., niedz.",
+          "Tue, Thu, Fri, Sun": "wt., czw., pt., niedz.",
+          "Mon, Tue, Thu, Fri, Sun": "pon., wt., czw., pt., niedz.",
+          "Wed, Thu, Fri, Sun": "śr., czw., pt., niedz.",
+          "Mon, Wed, Thu, Fri, Sun": "pon., śr., czw., pt., niedz.",
+          "Tue, Wed, Thu, Fri, Sun": "wt., śr., czw., pt., niedz.",
+          "Mon, Tue, Wed, Thu, Fri, Sun": "pon., wt., śr., czw., pt., niedz.",
+          "Mon, Sat, Sun": "pon., sob., niedz.",
+          "Tue, Sat, Sun": "wt., sob., niedz.",
+          "Mon, Tue, Sat, Sun": "pon., wt., sob., niedz.",
+          "Wed, Sat, Sun": "śr., sob., niedz.",
+          "Mon, Wed, Sat, Sun": "pon., śr., sob., niedz.",
+          "Tue, Wed, Sat, Sun": "wt., śr., sob., niedz.",
+          "Mon, Tue, Wed, Sat, Sun": "pon., wt., śr., sob., niedz.",
+          "Thu, Sat, Sun": "czw., sob., niedz.",
+          "Mon, Thu, Sat, Sun": "pon., czw., sob., niedz.",
+          "Tue, Thu, Sat, Sun": "wt., czw., sob., niedz.",
+          "Mon, Tue, Thu, Sat, Sun": "pon., wt., czw., sob., niedz.",
+          "Wed, Thu, Sat, Sun": "śr., czw., sob., niedz.",
+          "Mon, Wed, Thu, Sat, Sun": "pon., śr., czw., sob., niedz.",
+          "Tue, Wed, Thu, Sat, Sun": "wt., śr., czw., sob., niedz.",
+          "Mon, Tue, Wed, Thu, Sat, Sun": "pon., wt., śr., czw., sob., niedz.",
+          "Fri, Sat, Sun": "pt., sob., niedz.",
+          "Mon, Fri, Sat, Sun": "pon., pt., sob., niedz.",
+          "Tue, Fri, Sat, Sun": "wt., pt., sob., niedz.",
+          "Mon, Tue, Fri, Sat, Sun": "pon., wt., pt., sob., niedz.",
+          "Wed, Fri, Sat, Sun": "śr., pt., sob., niedz.",
+          "Mon, Wed, Fri, Sat, Sun": "pon., śr., pt., sob., niedz.",
+          "Tue, Wed, Fri, Sat, Sun": "wt., śr., pt., sob., niedz.",
+          "Mon, Tue, Wed, Fri, Sat, Sun": "pon., wt., śr., pt., sob., niedz.",
+          "Thu, Fri, Sat, Sun": "czw., pt., sob., niedz.",
+          "Mon, Thu, Fri, Sat, Sun": "pon., czw., pt., sob., niedz.",
+          "Tue, Thu, Fri, Sat, Sun": "wt., czw., pt., sob., niedz.",
+          "Mon, Tue, Thu, Fri, Sat, Sun": "pon., wt., czw., pt., sob., niedz.",
+          "Wed, Thu, Fri, Sat, Sun": "śr., czw., pt., sob., niedz.",
+          "Mon, Wed, Thu, Fri, Sat, Sun": "pon., śr., czw., pt., sob., niedz.",
+          "Tue, Wed, Thu, Fri, Sat, Sun": "wt., śr., czw., pt., sob., niedz."
+        }
+      }
+    },
+    "switch": {
+      "schedule_enabled": {
+        "name": "Posiłek {slot} — włączony"
+      },
+      "startup_clock_sync": {
+        "name": "Synchronizuj zegar urządzenia przy uruchamianiu Home Assistant"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "schedule": {
+        "title": "Edytuj posiłek {slot}",
+        "description": "Godziny odnoszą się do zegara karmnika. Ostatni odczyt: {clock}. Przed włączeniem posiłku sprawdź, czy zegar wskazuje poprawną lokalną datę i godzinę. Zatwierdzenie zapisuje ten posiłek i weryfikuje wszystkie pięć pozycji. Pozostałe posiłki nie są zmieniane. Aby wyłączyć ten posiłek, odznacz opcję Włączony.",
+        "data": {
+          "enabled": "Włączony",
+          "time": "Godzina karmienia",
+          "quantity": "Ilość karmy",
+          "weekdays": "Dni tygodnia"
+        }
+      },
+      "schedules": {
+        "title": "Zapisany harmonogram karmienia",
+        "description": "Wybierz jeden z pięciu posiłków odczytanych z karmnika. Otwarcie edytora nie zmienia harmonogramu.",
+        "data": {
+          "slot": "Posiłek"
+        }
+      },
+      "init": {
+        "title": "Skonfiguruj karmnik PetTec",
+        "menu_options": {
+          "schedules": "Zapisany harmonogram karmienia",
+          "clock": "Ustawienia zegara"
+        }
+      },
+      "clock": {
+        "title": "Ustawienia zegara",
+        "description": "Po włączeniu zegar jest synchronizowany raz po uruchomieniu Home Assistant, zgodnie z jego lokalną strefą czasową. Domyślnie opcja jest wyłączona. Aby zsynchronizować zegar od razu, użyj przycisku Synchronizuj zegar urządzenia. Zmiana zegara wpływa na godziny karmienia. Nieudana synchronizacja nie jest ponawiana automatycznie.",
+        "data": {
+          "sync_time_on_startup": "Synchronizuj zegar urządzenia przy uruchamianiu Home Assistant"
+        }
+      }
+    },
+    "error": {
+      "invalid_schedule": "Wybierz godzinę bez sekund, ilość od 1 do 200 pełnych gramów oraz co najmniej jeden dzień tygodnia dla włączonego posiłku.",
+      "schedule_changed": "Ten posiłek zmienił się podczas edycji. Anuluj i ponownie otwórz konfigurację, aby odczytać aktualne ustawienia.",
+      "cannot_save_schedule": "Nie można potwierdzić zapisu harmonogramu. Zmiany mogły już zostać zastosowane. Anuluj i ponownie otwórz konfigurację, aby sprawdzić wszystkie posiłki przed kolejną próbą."
+    },
+    "abort": {
+      "not_loaded": "Uruchom integrację przed otwarciem edytora harmonogramu.",
+      "cannot_read_schedules": "Nie można odczytać wszystkich pięciu posiłków. Harmonogram nie został zmieniony. Sprawdź połączenie; oprogramowanie urządzenia może używać innego formatu harmonogramu.",
+      "invalid_schedule": "Wybierz posiłek od 1 do 5."
+    }
+  },
+  "selector": {
+    "weekdays": {
+      "options": {
+        "mon": "Poniedziałek",
+        "tue": "Wtorek",
+        "wed": "Środa",
+        "thu": "Czwartek",
+        "fri": "Piątek",
+        "sat": "Sobota",
+        "sun": "Niedziela"
+      }
+    },
+    "schedule_status": {
+      "options": {
+        "enabled": "Włączony",
+        "disabled": "Wyłączony",
+        "no_days": "Brak dni"
+      }
+    }
+  },
+  "services": {
+    "dispense": {
+      "name": "Podaj porcję karmy",
+      "description": "Wysyła jedno polecenie karmienia bez ponawiania. Po błędzie sprawdź miskę.",
+      "fields": {
+        "entity_id": {
+          "name": "Przycisk karmienia"
+        },
+        "quantity": {
+          "name": "Ilość karmy"
+        }
+      }
+    },
+    "save_schedule": {
+      "name": "Zapisz posiłek",
+      "description": "Zapisuje i weryfikuje cały posiłek. Karta przekazuje poprzednie wartości, aby zapobiec nadpisaniu zmian wprowadzonych w innym miejscu.",
+      "fields": {
+        "entity_id": {
+          "name": "Encja godziny posiłku"
+        },
+        "slot": {
+          "name": "Numer posiłku"
+        },
+        "enabled": {
+          "name": "Włączony"
+        },
+        "hour": {
+          "name": "Godzina"
+        },
+        "minute": {
+          "name": "Minuta"
+        },
+        "quantity": {
+          "name": "Ilość karmy"
+        },
+        "weekdays": {
+          "name": "Maska dni tygodnia",
+          "description": "Poniedziałek to bit 0, niedziela to bit 6. Wszystkie dni to wartość 127."
+        },
+        "expected": {
+          "name": "Poprzednie ustawienia posiłku",
+          "description": "Poprzednie wartości enabled, hour, minute, quantity i weekdays przekazane przez kartę."
+        }
+      }
+    }
+  }
+}

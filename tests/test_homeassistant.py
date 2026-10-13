@@ -823,7 +823,7 @@ async def test_card_resource_is_served_and_registration_is_idempotent(
     await load_feeder(hass, entry, client)
     await async_setup_dashboard(hass)
     async with TestClient(TestServer(hass.http.app)) as http:
-        response = await http.get("/pettec_local/pettec-cards.js?v=0.5.2")
+        response = await http.get("/pettec_local/pettec-cards.js?v=0.5.3")
         assert response.status == 200
         assert "pettec-schedule-card" in await response.text()
 
@@ -927,3 +927,22 @@ async def test_card_resource_storage_error_does_not_disable_actions(hass, caplog
     assert hass.services.has_service(DOMAIN, "dispense")
     assert hass.services.has_service(DOMAIN, "save_schedule")
     assert "add it manually" in caplog.text
+
+
+async def test_polish_entity_and_selector_translations_load(hass, entry, client):
+    from homeassistant.helpers import translation
+
+    await load_feeder(hass, entry, client)
+    entities = await translation.async_get_translations(hass, "pl", "entity", {DOMAIN})
+    assert entities[f"component.{DOMAIN}.entity.button.feed.name"] == (
+        "Podaj wybraną ilość karmy"
+    )
+    assert entities[
+        f"component.{DOMAIN}.entity.select.schedule_days.state.Mon, Sun"
+    ] == ("pon., niedz.")
+    selectors = await translation.async_get_translations(
+        hass, "pl", "selector", {DOMAIN}
+    )
+    assert (
+        selectors[f"component.{DOMAIN}.selector.weekdays.options.mon"] == "Poniedziałek"
+    )

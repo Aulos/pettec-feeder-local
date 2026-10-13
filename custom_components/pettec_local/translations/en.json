@@ -59,7 +59,137 @@
     },
     "select": {
       "schedule_days": {
-        "name": "Schedule {slot} weekdays"
+        "name": "Schedule {slot} weekdays",
+        "state": {
+          "Every day": "Every day",
+          "Monday–Friday": "Monday–Friday",
+          "Saturday–Sunday": "Saturday–Sunday",
+          "No days": "No days",
+          "Mon": "Mon",
+          "Tue": "Tue",
+          "Mon, Tue": "Mon, Tue",
+          "Wed": "Wed",
+          "Mon, Wed": "Mon, Wed",
+          "Tue, Wed": "Tue, Wed",
+          "Mon, Tue, Wed": "Mon, Tue, Wed",
+          "Thu": "Thu",
+          "Mon, Thu": "Mon, Thu",
+          "Tue, Thu": "Tue, Thu",
+          "Mon, Tue, Thu": "Mon, Tue, Thu",
+          "Wed, Thu": "Wed, Thu",
+          "Mon, Wed, Thu": "Mon, Wed, Thu",
+          "Tue, Wed, Thu": "Tue, Wed, Thu",
+          "Mon, Tue, Wed, Thu": "Mon, Tue, Wed, Thu",
+          "Fri": "Fri",
+          "Mon, Fri": "Mon, Fri",
+          "Tue, Fri": "Tue, Fri",
+          "Mon, Tue, Fri": "Mon, Tue, Fri",
+          "Wed, Fri": "Wed, Fri",
+          "Mon, Wed, Fri": "Mon, Wed, Fri",
+          "Tue, Wed, Fri": "Tue, Wed, Fri",
+          "Mon, Tue, Wed, Fri": "Mon, Tue, Wed, Fri",
+          "Thu, Fri": "Thu, Fri",
+          "Mon, Thu, Fri": "Mon, Thu, Fri",
+          "Tue, Thu, Fri": "Tue, Thu, Fri",
+          "Mon, Tue, Thu, Fri": "Mon, Tue, Thu, Fri",
+          "Wed, Thu, Fri": "Wed, Thu, Fri",
+          "Mon, Wed, Thu, Fri": "Mon, Wed, Thu, Fri",
+          "Tue, Wed, Thu, Fri": "Tue, Wed, Thu, Fri",
+          "Sat": "Sat",
+          "Mon, Sat": "Mon, Sat",
+          "Tue, Sat": "Tue, Sat",
+          "Mon, Tue, Sat": "Mon, Tue, Sat",
+          "Wed, Sat": "Wed, Sat",
+          "Mon, Wed, Sat": "Mon, Wed, Sat",
+          "Tue, Wed, Sat": "Tue, Wed, Sat",
+          "Mon, Tue, Wed, Sat": "Mon, Tue, Wed, Sat",
+          "Thu, Sat": "Thu, Sat",
+          "Mon, Thu, Sat": "Mon, Thu, Sat",
+          "Tue, Thu, Sat": "Tue, Thu, Sat",
+          "Mon, Tue, Thu, Sat": "Mon, Tue, Thu, Sat",
+          "Wed, Thu, Sat": "Wed, Thu, Sat",
+          "Mon, Wed, Thu, Sat": "Mon, Wed, Thu, Sat",
+          "Tue, Wed, Thu, Sat": "Tue, Wed, Thu, Sat",
+          "Mon, Tue, Wed, Thu, Sat": "Mon, Tue, Wed, Thu, Sat",
+          "Fri, Sat": "Fri, Sat",
+          "Mon, Fri, Sat": "Mon, Fri, Sat",
+          "Tue, Fri, Sat": "Tue, Fri, Sat",
+          "Mon, Tue, Fri, Sat": "Mon, Tue, Fri, Sat",
+          "Wed, Fri, Sat": "Wed, Fri, Sat",
+          "Mon, Wed, Fri, Sat": "Mon, Wed, Fri, Sat",
+          "Tue, Wed, Fri, Sat": "Tue, Wed, Fri, Sat",
+          "Mon, Tue, Wed, Fri, Sat": "Mon, Tue, Wed, Fri, Sat",
+          "Thu, Fri, Sat": "Thu, Fri, Sat",
+          "Mon, Thu, Fri, Sat": "Mon, Thu, Fri, Sat",
+          "Tue, Thu, Fri, Sat": "Tue, Thu, Fri, Sat",
+          "Mon, Tue, Thu, Fri, Sat": "Mon, Tue, Thu, Fri, Sat",
+          "Wed, Thu, Fri, Sat": "Wed, Thu, Fri, Sat",
+          "Mon, Wed, Thu, Fri, Sat": "Mon, Wed, Thu, Fri, Sat",
+          "Tue, Wed, Thu, Fri, Sat": "Tue, Wed, Thu, Fri, Sat",
+          "Mon, Tue, Wed, Thu, Fri, Sat": "Mon, Tue, Wed, Thu, Fri, Sat",
+          "Sun": "Sun",
+          "Mon, Sun": "Mon, Sun",
+          "Tue, Sun": "Tue, Sun",
+          "Mon, Tue, Sun": "Mon, Tue, Sun",
+          "Wed, Sun": "Wed, Sun",
+          "Mon, Wed, Sun": "Mon, Wed, Sun",
+          "Tue, Wed, Sun": "Tue, Wed, Sun",
+          "Mon, Tue, Wed, Sun": "Mon, Tue, Wed, Sun",
+          "Thu, Sun": "Thu, Sun",
+          "Mon, Thu, Sun": "Mon, Thu, Sun",
+          "Tue, Thu, Sun": "Tue, Thu, Sun",
+          "Mon, Tue, Thu, Sun": "Mon, Tue, Thu, Sun",
+          "Wed, Thu, Sun": "Wed, Thu, Sun",
+          "Mon, Wed, Thu, Sun": "Mon, Wed, Thu, Sun",
+          "Tue, Wed, Thu, Sun": "Tue, Wed, Thu, Sun",
+          "Mon, Tue, Wed, Thu, Sun": "Mon, Tue, Wed, Thu, Sun",
+          "Fri, Sun": "Fri, Sun",
+          "Mon, Fri, Sun": "Mon, Fri, Sun",
+          "Tue, Fri, Sun": "Tue, Fri, Sun",
+          "Mon, Tue, Fri, Sun": "Mon, Tue, Fri, Sun",
+          "Wed, Fri, Sun": "Wed, Fri, Sun",
+          "Mon, Wed, Fri, Sun": "Mon, Wed, Fri, Sun",
+          "Tue, Wed, Fri, Sun": "Tue, Wed, Fri, Sun",
+          "Mon, Tue, Wed, Fri, Sun": "Mon, Tue, Wed, Fri, Sun",
+          "Thu, Fri, Sun": "Thu, Fri, Sun",
+          "Mon, Thu, Fri, Sun": "Mon, Thu, Fri, Sun",
+          "Tue, Thu, Fri, Sun": "Tue, Thu, Fri, Sun",
+          "Mon, Tue, Thu, Fri, Sun": "Mon, Tue, Thu, Fri, Sun",
+          "Wed, Thu, Fri, Sun": "Wed, Thu, Fri, Sun",
+          "Mon, Wed, Thu, Fri, Sun": "Mon, Wed, Thu, Fri, Sun",
+          "Tue, Wed, Thu, Fri, Sun": "Tue, Wed, Thu, Fri, Sun",
+          "Mon, Tue, Wed, Thu, Fri, Sun": "Mon, Tue, Wed, Thu, Fri, Sun",
+          "Mon, Sat, Sun": "Mon, Sat, Sun",
+          "Tue, Sat, Sun": "Tue, Sat, Sun",
+          "Mon, Tue, Sat, Sun": "Mon, Tue, Sat, Sun",
+          "Wed, Sat, Sun": "Wed, Sat, Sun",
+          "Mon, Wed, Sat, Sun": "Mon, Wed, Sat, Sun",
+          "Tue, Wed, Sat, Sun": "Tue, Wed, Sat, Sun",
+          "Mon, Tue, Wed, Sat, Sun": "Mon, Tue, Wed, Sat, Sun",
+          "Thu, Sat, Sun": "Thu, Sat, Sun",
+          "Mon, Thu, Sat, Sun": "Mon, Thu, Sat, Sun",
+          "Tue, Thu, Sat, Sun": "Tue, Thu, Sat, Sun",
+          "Mon, Tue, Thu, Sat, Sun": "Mon, Tue, Thu, Sat, Sun",
+          "Wed, Thu, Sat, Sun": "Wed, Thu, Sat, Sun",
+          "Mon, Wed, Thu, Sat, Sun": "Mon, Wed, Thu, Sat, Sun",
+          "Tue, Wed, Thu, Sat, Sun": "Tue, Wed, Thu, Sat, Sun",
+          "Mon, Tue, Wed, Thu, Sat, Sun": "Mon, Tue, Wed, Thu, Sat, Sun",
+          "Fri, Sat, Sun": "Fri, Sat, Sun",
+          "Mon, Fri, Sat, Sun": "Mon, Fri, Sat, Sun",
+          "Tue, Fri, Sat, Sun": "Tue, Fri, Sat, Sun",
+          "Mon, Tue, Fri, Sat, Sun": "Mon, Tue, Fri, Sat, Sun",
+          "Wed, Fri, Sat, Sun": "Wed, Fri, Sat, Sun",
+          "Mon, Wed, Fri, Sat, Sun": "Mon, Wed, Fri, Sat, Sun",
+          "Tue, Wed, Fri, Sat, Sun": "Tue, Wed, Fri, Sat, Sun",
+          "Mon, Tue, Wed, Fri, Sat, Sun": "Mon, Tue, Wed, Fri, Sat, Sun",
+          "Thu, Fri, Sat, Sun": "Thu, Fri, Sat, Sun",
+          "Mon, Thu, Fri, Sat, Sun": "Mon, Thu, Fri, Sat, Sun",
+          "Tue, Thu, Fri, Sat, Sun": "Tue, Thu, Fri, Sat, Sun",
+          "Mon, Tue, Thu, Fri, Sat, Sun": "Mon, Tue, Thu, Fri, Sat, Sun",
+          "Wed, Thu, Fri, Sat, Sun": "Wed, Thu, Fri, Sat, Sun",
+          "Mon, Wed, Thu, Fri, Sat, Sun": "Mon, Wed, Thu, Fri, Sat, Sun",
+          "Tue, Wed, Thu, Fri, Sat, Sun": "Tue, Wed, Thu, Fri, Sat, Sun"
+        }
       }
     },
     "switch": {
@@ -114,6 +244,72 @@
       "not_loaded": "Load the integration before opening its schedule editor.",
       "cannot_read_schedules": "Unable to read all five schedules. No schedules were changed. Check the connection; this firmware may use a different schedule format.",
       "invalid_schedule": "Choose a schedule slot from 1 to 5."
+    }
+  },
+  "selector": {
+    "weekdays": {
+      "options": {
+        "mon": "Monday",
+        "tue": "Tuesday",
+        "wed": "Wednesday",
+        "thu": "Thursday",
+        "fri": "Friday",
+        "sat": "Saturday",
+        "sun": "Sunday"
+      }
+    },
+    "schedule_status": {
+      "options": {
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "no_days": "No days"
+      }
+    }
+  },
+  "services": {
+    "dispense": {
+      "name": "Dispense one portion",
+      "description": "Sends one feeding request without retrying. Check the bowl after any error.",
+      "fields": {
+        "entity_id": {
+          "name": "Feed button"
+        },
+        "quantity": {
+          "name": "Amount"
+        }
+      }
+    },
+    "save_schedule": {
+      "name": "Save a meal",
+      "description": "Saves and verifies a whole meal. Used by the schedule card with its original values to reject stale edits.",
+      "fields": {
+        "entity_id": {
+          "name": "Meal time entity"
+        },
+        "slot": {
+          "name": "Meal number"
+        },
+        "enabled": {
+          "name": "Enabled"
+        },
+        "hour": {
+          "name": "Hour"
+        },
+        "minute": {
+          "name": "Minute"
+        },
+        "quantity": {
+          "name": "Amount"
+        },
+        "weekdays": {
+          "name": "Weekday mask",
+          "description": "Monday is bit 0, Sunday is bit 6. Every day is 127."
+        },
+        "expected": {
+          "name": "Original meal",
+          "description": "Original enabled, hour, minute, quantity and weekdays values, supplied by the card."
+        }
+      }
     }
   }
 }

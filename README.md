@@ -218,7 +218,7 @@ configuration manually (the integration does not edit YAML):
 lovelace:
   resource_mode: yaml
   resources:
-    - url: /pettec_local/pettec-cards.js?v=0.5.2
+    - url: /pettec_local/pettec-cards.js?v=0.5.3
       type: module
 ```
 
@@ -254,3 +254,11 @@ npm test
 The browser tests use simulated Home Assistant states and service calls; they do
 not connect to or dispense from a real feeder. JavaScript test dependencies are
 not needed by Home Assistant or included in its integration directory.
+
+## Languages
+
+English and Polish translations are included for setup, options, entity labels,
+weekday choices, action descriptions, and the dashboard cards. Cards use the
+language selected in your Home Assistant profile, with English as the fallback.
+Refresh the browser after changing language. Custom card titles are preserved.
+Technical errors returned by the backend may still include English diagnostics.

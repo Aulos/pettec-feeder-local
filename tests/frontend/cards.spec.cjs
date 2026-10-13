@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const path = require('node:path');
 
-async function setup(page, type = 'pettec-feed-card') {
+async function setup(page, type = 'pettec-feed-card', language = 'en') {
   await page.setContent(`<style>
     body {margin:16px;background:#f5f6f8;font-family:Arial,sans-serif;--primary-color:#007b82;--primary-text-color:#202a2e;--secondary-text-color:#626c73;--divider-color:#d8e1e2;--card-background-color:white}
     ha-card {display:block;background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:12px}
@@ -15,7 +15,7 @@ async function setup(page, type = 'pettec-feed-card') {
     });
   `});
   await page.addScriptTag({ path: path.resolve('custom_components/pettec_local/frontend/pettec-cards.js') });
-  await page.evaluate(type => {
+  await page.evaluate(([type, language]) => {
     const registry = [];
     const states = {};
     const add = (domain, suffix, state) => {
@@ -33,6 +33,7 @@ async function setup(page, type = 'pettec-feed-card') {
     }
     window.calls = [];
     window.hass = {
+      locale: {language},
       states,
       callWS: async ({type}) => type.includes('entity_registry') ? registry : [{id: 'feeder', name: 'Kitchen feeder'}],
       callService: async (domain, service, data) => {
@@ -45,7 +46,7 @@ async function setup(page, type = 'pettec-feed-card') {
     card.setConfig({type: `custom:${type}`, device_id: 'feeder'});
     document.body.append(card);
     card.hass = hass;
-  }, type);
+  }, [type, language]);
 }
 
 test('feed uses entered amount exactly once while pending and never retries errors', async ({page}) => {
@@ -151,4 +152,34 @@ test('compact feed card adapts to its container in dark and light themes', async
   expect(layout[2].height).toBeLessThan(105);
   expect(layout[2].oneRow).toBe(true);
   await page.screenshot({path:'test-results/feed-design-preview.png',fullPage:true});
+});
+
+test('Polish feed card translates controls, editor and feedback', async ({page}) => {
+  await setup(page, 'pettec-feed-card', 'pl-PL');
+  await expect(page.getByRole('heading', {name:'Nakarm teraz'})).toBeVisible();
+  await page.getByLabel('Ilość · g').fill('37');
+  await page.getByRole('button', {name:'Podaj karmę', exact:true}).click();
+  expect(await page.evaluate(() => calls[0].data.quantity)).toBe(37);
+  await expect(page.getByRole('status')).toContainText('Karmnik potwierdził');
+  await page.evaluate(() => {
+    const editor = document.createElement('pettec-card-editor');
+    editor.setConfig({type:'custom:pettec-feed-card'});
+    document.body.append(editor); editor.hass = hass;
+  });
+  await expect(page.getByLabel('Karmnik', {exact:true})).toBeVisible();
+  await page.evaluate(() => {window.failService = true;});
+  await page.getByRole('button', {name:'Podaj karmę', exact:true}).click();
+  await expect(page.getByRole('status')).toContainText('sprawdź miskę');
+});
+
+test('Polish weekday labels preserve the protocol mask and fit a narrow card', async ({page}) => {
+  await setup(page, 'pettec-schedule-card', 'pl');
+  await expect(page.getByRole('heading', {name:'Harmonogram karmienia'})).toBeVisible();
+  const meal = page.locator('fieldset').first();
+  for (const day of ['Wt.','Śr.','Czw.','Pt.','Sob.']) await meal.getByRole('button', {name:day,exact:true}).click();
+  await meal.getByRole('button', {name:'Zapisz posiłek'}).click();
+  expect(await page.evaluate(() => calls[0].data.weekdays)).toBe(65);
+  expect(await page.evaluate(() => calls[0].data.expected.weekdays)).toBe(127);
+  await expect(meal.getByRole('status')).toContainText('Zapisano i potwierdzono');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

@@ -9,7 +9,7 @@ from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_HOST
 from homeassistant.core import callback
-from homeassistant.helpers import selector
+from homeassistant.helpers import selector, translation
 
 from .const import CONF_ACCESS_KEY, CONF_SYNC_TIME_STARTUP, DOMAIN
 from .feeder import FeederClient, ScheduleChangedError
@@ -180,17 +180,24 @@ class PetTecOptionsFlow(config_entries.OptionsFlow):
                 return self.async_abort(reason="invalid_schedule")
             self._original = slots[self._slot - 1]
             return await self.async_step_schedule()
+        translations = await translation.async_get_translations(
+            self.hass,
+            self.context.get("language", self.hass.config.language),
+            "selector",
+            {DOMAIN},
+        )
+        prefix = f"component.{DOMAIN}.selector."
         choices = []
         for index, slot in enumerate(slots, 1):
-            days = (
-                ", ".join(
-                    day.title()
-                    for bit, day in enumerate(WEEKDAYS)
-                    if slot.weekdays & (1 << bit)
-                )
-                or "no days"
+            days = ", ".join(
+                translations.get(f"{prefix}weekdays.options.{day}", day.title())
+                for bit, day in enumerate(WEEKDAYS)
+                if slot.weekdays & (1 << bit)
+            ) or translations.get(f"{prefix}schedule_status.options.no_days", "No days")
+            state_key = "enabled" if slot.enabled else "disabled"
+            state = translations.get(
+                f"{prefix}schedule_status.options.{state_key}", state_key
             )
-            state = "enabled" if slot.enabled else "disabled"
             choices.append(
                 {
                     "value": str(index),
@@ -266,9 +273,8 @@ class PetTecOptionsFlow(config_entries.OptionsFlow):
                 ),
                 probatio.Required("weekdays"): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=[
-                            {"value": day, "label": day.title()} for day in WEEKDAYS
-                        ],
+                        options=list(WEEKDAYS),
+                        translation_key="weekdays",
                         multiple=True,
                     )
                 ),
