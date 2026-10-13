@@ -30,7 +30,7 @@ The standalone provisioning helper requires Python 3.11 or later.
 
 1. In HACS, open **Custom repositories**.
 2. Add `https://github.com/Aulos/pettec-feeder-local` with category **Integration**.
-3. Download **PetTec PF 05WD (experimental)** and restart Home Assistant.
+3. Download **PetTec PF 05WD** and restart Home Assistant.
 4. Open **Settings → Devices & services → Add integration**, and search for PetTec.
 5. Enter the feeder's IPv4 address and its numeric Xlink access key.
 
@@ -234,7 +234,7 @@ configuration manually (the integration does not edit YAML):
 lovelace:
   resource_mode: yaml
   resources:
-    - url: /pettec_local/pettec-cards.js?v=0.6.0
+    - url: /pettec_local/pettec-cards.js?v=0.6.1
       type: module
 ```
 

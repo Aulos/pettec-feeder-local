@@ -1,6 +1,6 @@
 {
   "domain": "pettec_local",
-  "name": "PetTec PF 05WD (experimental)",
+  "name": "PetTec PF 05WD",
   "codeowners": [
     "@Aulos"
   ],
@@ -12,7 +12,7 @@
   "requirements": [
     "pettec-xlink==0.1.0"
   ],
-  "version": "0.6.0",
+  "version": "0.6.1",
   "dependencies": [
     "http",
     "lovelace"
