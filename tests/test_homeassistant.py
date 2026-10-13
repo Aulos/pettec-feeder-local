@@ -823,7 +823,7 @@ async def test_card_resource_is_served_and_registration_is_idempotent(
     await load_feeder(hass, entry, client)
     await async_setup_dashboard(hass)
     async with TestClient(TestServer(hass.http.app)) as http:
-        response = await http.get("/pettec_local/pettec-cards.js?v=0.5.3")
+        response = await http.get("/pettec_local/pettec-cards.js?v=0.5.4")
         assert response.status == 200
         assert "pettec-schedule-card" in await response.text()
 

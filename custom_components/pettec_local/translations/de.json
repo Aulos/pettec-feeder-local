@@ -1,0 +1,315 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "PetTec PF 05WD verbinden",
+        "description": "Der Futterautomat muss bereits mit dem WLAN verbunden sein. Sie benötigen außerdem seinen numerischen Xlink-Zugangsschlüssel. Diese Integration richtet kein WLAN ein und kann keine Schlüssel wiederherstellen. Bei der Einrichtung wird nur die Geräteuhr ausgelesen.",
+        "data": {
+          "host": "IPv4-Adresse des Futterautomaten",
+          "access_key": "Xlink-Zugangsschlüssel"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Zugangsschlüssel des Futterautomaten korrigieren",
+        "description": "Geben Sie den numerischen Xlink-Zugangsschlüssel für diesen Futterautomaten ein. Zur Überprüfung wird nur die Uhr ausgelesen.",
+        "data": {
+          "access_key": "Xlink-Zugangsschlüssel"
+        }
+      }
+    },
+    "error": {
+      "invalid_host": "Geben Sie die IPv4-Adresse des Futterautomaten ein, zum Beispiel 192.168.1.50.",
+      "cannot_connect": "Verbindung nicht möglich. Prüfen Sie, ob der Futterautomat mit dem WLAN verbunden und von Home Assistant erreichbar ist.",
+      "invalid_auth": "Der Zugangsschlüssel muss eine Zahl von 1 bis 999999999 sein und zum Futterautomaten passen.",
+      "unsupported_device": "Dieses Gerät entspricht nicht dem unterstützten PetTec PF 05WD.",
+      "unknown": "Die Uhr des Futterautomaten konnte nicht ausgelesen werden. Möglicherweise verwendet diese Firmware ein anderes Protokoll."
+    },
+    "abort": {
+      "already_configured": "Dieser Futterautomat ist bereits eingerichtet.",
+      "reauth_successful": "Der Zugangsschlüssel wurde aktualisiert.",
+      "wrong_account": "Dies ist ein anderer Futterautomat."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "clock": {
+        "name": "Geräteuhr"
+      }
+    },
+    "number": {
+      "quantity": {
+        "name": "Futtermenge"
+      },
+      "schedule_amount": {
+        "name": "Futtermenge für Zeitplan {slot}"
+      }
+    },
+    "button": {
+      "feed": {
+        "name": "Ausgewählte Menge ausgeben"
+      },
+      "sync_clock": {
+        "name": "Geräteuhr synchronisieren"
+      }
+    },
+    "time": {
+      "schedule_time": {
+        "name": "Fütterungszeit für Zeitplan {slot}"
+      }
+    },
+    "select": {
+      "schedule_days": {
+        "name": "Wochentage für Zeitplan {slot}",
+        "state": {
+          "Every day": "Jeden Tag",
+          "Monday–Friday": "Montag–Freitag",
+          "Saturday–Sunday": "Samstag–Sonntag",
+          "No days": "Keine Tage",
+          "Mon": "Mo",
+          "Tue": "Di",
+          "Mon, Tue": "Mo, Di",
+          "Wed": "Mi",
+          "Mon, Wed": "Mo, Mi",
+          "Tue, Wed": "Di, Mi",
+          "Mon, Tue, Wed": "Mo, Di, Mi",
+          "Thu": "Do",
+          "Mon, Thu": "Mo, Do",
+          "Tue, Thu": "Di, Do",
+          "Mon, Tue, Thu": "Mo, Di, Do",
+          "Wed, Thu": "Mi, Do",
+          "Mon, Wed, Thu": "Mo, Mi, Do",
+          "Tue, Wed, Thu": "Di, Mi, Do",
+          "Mon, Tue, Wed, Thu": "Mo, Di, Mi, Do",
+          "Fri": "Fr",
+          "Mon, Fri": "Mo, Fr",
+          "Tue, Fri": "Di, Fr",
+          "Mon, Tue, Fri": "Mo, Di, Fr",
+          "Wed, Fri": "Mi, Fr",
+          "Mon, Wed, Fri": "Mo, Mi, Fr",
+          "Tue, Wed, Fri": "Di, Mi, Fr",
+          "Mon, Tue, Wed, Fri": "Mo, Di, Mi, Fr",
+          "Thu, Fri": "Do, Fr",
+          "Mon, Thu, Fri": "Mo, Do, Fr",
+          "Tue, Thu, Fri": "Di, Do, Fr",
+          "Mon, Tue, Thu, Fri": "Mo, Di, Do, Fr",
+          "Wed, Thu, Fri": "Mi, Do, Fr",
+          "Mon, Wed, Thu, Fri": "Mo, Mi, Do, Fr",
+          "Tue, Wed, Thu, Fri": "Di, Mi, Do, Fr",
+          "Sat": "Sa",
+          "Mon, Sat": "Mo, Sa",
+          "Tue, Sat": "Di, Sa",
+          "Mon, Tue, Sat": "Mo, Di, Sa",
+          "Wed, Sat": "Mi, Sa",
+          "Mon, Wed, Sat": "Mo, Mi, Sa",
+          "Tue, Wed, Sat": "Di, Mi, Sa",
+          "Mon, Tue, Wed, Sat": "Mo, Di, Mi, Sa",
+          "Thu, Sat": "Do, Sa",
+          "Mon, Thu, Sat": "Mo, Do, Sa",
+          "Tue, Thu, Sat": "Di, Do, Sa",
+          "Mon, Tue, Thu, Sat": "Mo, Di, Do, Sa",
+          "Wed, Thu, Sat": "Mi, Do, Sa",
+          "Mon, Wed, Thu, Sat": "Mo, Mi, Do, Sa",
+          "Tue, Wed, Thu, Sat": "Di, Mi, Do, Sa",
+          "Mon, Tue, Wed, Thu, Sat": "Mo, Di, Mi, Do, Sa",
+          "Fri, Sat": "Fr, Sa",
+          "Mon, Fri, Sat": "Mo, Fr, Sa",
+          "Tue, Fri, Sat": "Di, Fr, Sa",
+          "Mon, Tue, Fri, Sat": "Mo, Di, Fr, Sa",
+          "Wed, Fri, Sat": "Mi, Fr, Sa",
+          "Mon, Wed, Fri, Sat": "Mo, Mi, Fr, Sa",
+          "Tue, Wed, Fri, Sat": "Di, Mi, Fr, Sa",
+          "Mon, Tue, Wed, Fri, Sat": "Mo, Di, Mi, Fr, Sa",
+          "Thu, Fri, Sat": "Do, Fr, Sa",
+          "Mon, Thu, Fri, Sat": "Mo, Do, Fr, Sa",
+          "Tue, Thu, Fri, Sat": "Di, Do, Fr, Sa",
+          "Mon, Tue, Thu, Fri, Sat": "Mo, Di, Do, Fr, Sa",
+          "Wed, Thu, Fri, Sat": "Mi, Do, Fr, Sa",
+          "Mon, Wed, Thu, Fri, Sat": "Mo, Mi, Do, Fr, Sa",
+          "Tue, Wed, Thu, Fri, Sat": "Di, Mi, Do, Fr, Sa",
+          "Mon, Tue, Wed, Thu, Fri, Sat": "Mo, Di, Mi, Do, Fr, Sa",
+          "Sun": "So",
+          "Mon, Sun": "Mo, So",
+          "Tue, Sun": "Di, So",
+          "Mon, Tue, Sun": "Mo, Di, So",
+          "Wed, Sun": "Mi, So",
+          "Mon, Wed, Sun": "Mo, Mi, So",
+          "Tue, Wed, Sun": "Di, Mi, So",
+          "Mon, Tue, Wed, Sun": "Mo, Di, Mi, So",
+          "Thu, Sun": "Do, So",
+          "Mon, Thu, Sun": "Mo, Do, So",
+          "Tue, Thu, Sun": "Di, Do, So",
+          "Mon, Tue, Thu, Sun": "Mo, Di, Do, So",
+          "Wed, Thu, Sun": "Mi, Do, So",
+          "Mon, Wed, Thu, Sun": "Mo, Mi, Do, So",
+          "Tue, Wed, Thu, Sun": "Di, Mi, Do, So",
+          "Mon, Tue, Wed, Thu, Sun": "Mo, Di, Mi, Do, So",
+          "Fri, Sun": "Fr, So",
+          "Mon, Fri, Sun": "Mo, Fr, So",
+          "Tue, Fri, Sun": "Di, Fr, So",
+          "Mon, Tue, Fri, Sun": "Mo, Di, Fr, So",
+          "Wed, Fri, Sun": "Mi, Fr, So",
+          "Mon, Wed, Fri, Sun": "Mo, Mi, Fr, So",
+          "Tue, Wed, Fri, Sun": "Di, Mi, Fr, So",
+          "Mon, Tue, Wed, Fri, Sun": "Mo, Di, Mi, Fr, So",
+          "Thu, Fri, Sun": "Do, Fr, So",
+          "Mon, Thu, Fri, Sun": "Mo, Do, Fr, So",
+          "Tue, Thu, Fri, Sun": "Di, Do, Fr, So",
+          "Mon, Tue, Thu, Fri, Sun": "Mo, Di, Do, Fr, So",
+          "Wed, Thu, Fri, Sun": "Mi, Do, Fr, So",
+          "Mon, Wed, Thu, Fri, Sun": "Mo, Mi, Do, Fr, So",
+          "Tue, Wed, Thu, Fri, Sun": "Di, Mi, Do, Fr, So",
+          "Mon, Tue, Wed, Thu, Fri, Sun": "Mo, Di, Mi, Do, Fr, So",
+          "Mon, Sat, Sun": "Mo, Sa, So",
+          "Tue, Sat, Sun": "Di, Sa, So",
+          "Mon, Tue, Sat, Sun": "Mo, Di, Sa, So",
+          "Wed, Sat, Sun": "Mi, Sa, So",
+          "Mon, Wed, Sat, Sun": "Mo, Mi, Sa, So",
+          "Tue, Wed, Sat, Sun": "Di, Mi, Sa, So",
+          "Mon, Tue, Wed, Sat, Sun": "Mo, Di, Mi, Sa, So",
+          "Thu, Sat, Sun": "Do, Sa, So",
+          "Mon, Thu, Sat, Sun": "Mo, Do, Sa, So",
+          "Tue, Thu, Sat, Sun": "Di, Do, Sa, So",
+          "Mon, Tue, Thu, Sat, Sun": "Mo, Di, Do, Sa, So",
+          "Wed, Thu, Sat, Sun": "Mi, Do, Sa, So",
+          "Mon, Wed, Thu, Sat, Sun": "Mo, Mi, Do, Sa, So",
+          "Tue, Wed, Thu, Sat, Sun": "Di, Mi, Do, Sa, So",
+          "Mon, Tue, Wed, Thu, Sat, Sun": "Mo, Di, Mi, Do, Sa, So",
+          "Fri, Sat, Sun": "Fr, Sa, So",
+          "Mon, Fri, Sat, Sun": "Mo, Fr, Sa, So",
+          "Tue, Fri, Sat, Sun": "Di, Fr, Sa, So",
+          "Mon, Tue, Fri, Sat, Sun": "Mo, Di, Fr, Sa, So",
+          "Wed, Fri, Sat, Sun": "Mi, Fr, Sa, So",
+          "Mon, Wed, Fri, Sat, Sun": "Mo, Mi, Fr, Sa, So",
+          "Tue, Wed, Fri, Sat, Sun": "Di, Mi, Fr, Sa, So",
+          "Mon, Tue, Wed, Fri, Sat, Sun": "Mo, Di, Mi, Fr, Sa, So",
+          "Thu, Fri, Sat, Sun": "Do, Fr, Sa, So",
+          "Mon, Thu, Fri, Sat, Sun": "Mo, Do, Fr, Sa, So",
+          "Tue, Thu, Fri, Sat, Sun": "Di, Do, Fr, Sa, So",
+          "Mon, Tue, Thu, Fri, Sat, Sun": "Mo, Di, Do, Fr, Sa, So",
+          "Wed, Thu, Fri, Sat, Sun": "Mi, Do, Fr, Sa, So",
+          "Mon, Wed, Thu, Fri, Sat, Sun": "Mo, Mi, Do, Fr, Sa, So",
+          "Tue, Wed, Thu, Fri, Sat, Sun": "Di, Mi, Do, Fr, Sa, So"
+        }
+      }
+    },
+    "switch": {
+      "schedule_enabled": {
+        "name": "Zeitplan {slot} aktiviert"
+      },
+      "startup_clock_sync": {
+        "name": "Geräteuhr beim Start von Home Assistant synchronisieren"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "schedule": {
+        "title": "Zeitplan {slot} bearbeiten",
+        "description": "Die Zeiten verwenden die Uhr des Futterautomaten, zuletzt abgelesen um {clock}. Prüfen Sie vor dem Aktivieren eines Zeitplans, ob Datum und Uhrzeit lokal korrekt sind. Beim Absenden wird dieser Eintrag auf den Futterautomaten geschrieben und es werden alle fünf Einträge überprüft; die übrigen Einträge bleiben erhalten. Um diesen Eintrag zu deaktivieren, entfernen Sie die Markierung bei Aktiviert.",
+        "data": {
+          "enabled": "Aktiviert",
+          "time": "Fütterungszeit",
+          "quantity": "Futtermenge",
+          "weekdays": "Tage"
+        }
+      },
+      "schedules": {
+        "title": "Gespeicherte Fütterungszeiten",
+        "description": "Wählen Sie einen der fünf vom Futterautomaten gelesenen Zeitpläne aus. Das Öffnen dieser Bearbeitung ändert keinen Zeitplan.",
+        "data": {
+          "slot": "Zeitplan"
+        }
+      },
+      "init": {
+        "title": "PetTec-Futterautomat einrichten",
+        "menu_options": {
+          "schedules": "Gespeicherte Fütterungszeiten",
+          "clock": "Uhreinstellungen"
+        }
+      },
+      "clock": {
+        "title": "Uhreinstellungen",
+        "description": "Wenn aktiviert, wird die Uhr einmal nach dem Start von Home Assistant mit dessen eingestellter lokaler Zeitzone synchronisiert. Diese Einstellung ist standardmäßig deaktiviert. Für eine sofortige Synchronisierung verwenden Sie die Schaltfläche „Geräteuhr synchronisieren“. Änderungen an der Uhr beeinflussen die Ausführung gespeicherter Zeitpläne. Eine fehlgeschlagene Synchronisierung wird nicht automatisch wiederholt.",
+        "data": {
+          "sync_time_on_startup": "Geräteuhr beim Start von Home Assistant synchronisieren"
+        }
+      }
+    },
+    "error": {
+      "invalid_schedule": "Wählen Sie eine Zeit mit null Sekunden, 1–200 ganzen Gramm und mindestens einem Wochentag für einen aktivierten Zeitplan.",
+      "schedule_changed": "Dieser Eintrag wurde während der Bearbeitung geändert. Brechen Sie ab und öffnen Sie die Einrichtung erneut, um die aktuellen Einstellungen auszulesen.",
+      "cannot_save_schedule": "Die Aktualisierung des Zeitplans konnte nicht überprüft werden. Änderungen wurden möglicherweise bereits übernommen. Brechen Sie ab und öffnen Sie die Einrichtung erneut, um alle Zeitpläne zu prüfen, bevor Sie es erneut versuchen."
+    },
+    "abort": {
+      "not_loaded": "Laden Sie die Integration, bevor Sie den Zeitplan bearbeiten.",
+      "cannot_read_schedules": "Die fünf Zeitpläne konnten nicht vollständig gelesen werden. Es wurden keine Zeitpläne geändert. Prüfen Sie die Verbindung; möglicherweise verwendet diese Firmware ein anderes Zeitplanformat.",
+      "invalid_schedule": "Wählen Sie einen Zeitplan von 1 bis 5."
+    }
+  },
+  "selector": {
+    "weekdays": {
+      "options": {
+        "mon": "Montag",
+        "tue": "Dienstag",
+        "wed": "Mittwoch",
+        "thu": "Donnerstag",
+        "fri": "Freitag",
+        "sat": "Samstag",
+        "sun": "Sonntag"
+      }
+    },
+    "schedule_status": {
+      "options": {
+        "enabled": "Aktiviert",
+        "disabled": "Deaktiviert",
+        "no_days": "Keine Tage"
+      }
+    }
+  },
+  "services": {
+    "dispense": {
+      "name": "Eine Portion ausgeben",
+      "description": "Sendet eine einzelne Fütterungsanfrage ohne Wiederholungsversuch. Prüfen Sie nach einem Fehler den Napf.",
+      "fields": {
+        "entity_id": {
+          "name": "Fütterungsschaltfläche"
+        },
+        "quantity": {
+          "name": "Menge"
+        }
+      }
+    },
+    "save_schedule": {
+      "name": "Mahlzeit speichern",
+      "description": "Speichert eine vollständige Mahlzeit und überprüft sie. Die Zeitplankarte übermittelt die ursprünglichen Werte, um veraltete Änderungen abzulehnen.",
+      "fields": {
+        "entity_id": {
+          "name": "Zeitentität der Mahlzeit"
+        },
+        "slot": {
+          "name": "Mahlzeitnummer"
+        },
+        "enabled": {
+          "name": "Aktiviert"
+        },
+        "hour": {
+          "name": "Stunde"
+        },
+        "minute": {
+          "name": "Minute"
+        },
+        "quantity": {
+          "name": "Menge"
+        },
+        "weekdays": {
+          "name": "Wochentagsmaske",
+          "description": "Montag ist Bit 0, Sonntag Bit 6. Alle Tage entsprechen 127."
+        },
+        "expected": {
+          "name": "Ursprüngliche Mahlzeit",
+          "description": "Ursprüngliche Werte für Aktivierung, Stunde, Minute, Menge und Wochentage, die von der Karte übermittelt werden."
+        }
+      }
+    }
+  }
+}

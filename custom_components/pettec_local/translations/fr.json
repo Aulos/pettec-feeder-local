@@ -1,0 +1,315 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connecter un PetTec PF 05WD",
+        "description": "Le distributeur doit déjà être connecté au Wi-Fi et vous devez disposer de sa clé d’accès Xlink numérique. Cette intégration ne configure pas le Wi-Fi et ne permet pas de récupérer les clés. La configuration lit uniquement l’horloge de l’appareil.",
+        "data": {
+          "host": "Adresse IPv4 du distributeur",
+          "access_key": "Clé d’accès Xlink"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Corriger la clé d’accès du distributeur",
+        "description": "Saisissez la clé d’accès Xlink numérique de ce distributeur. La vérification lit uniquement son horloge.",
+        "data": {
+          "access_key": "Clé d’accès Xlink"
+        }
+      }
+    },
+    "error": {
+      "invalid_host": "Saisissez l’adresse IPv4 du distributeur, par exemple 192.168.1.50.",
+      "cannot_connect": "Connexion impossible. Vérifiez que le distributeur est connecté au Wi-Fi et joignable depuis Home Assistant.",
+      "invalid_auth": "La clé d’accès doit être un nombre compris entre 1 et 999999999 et correspondre au distributeur.",
+      "unsupported_device": "Cet appareil ne correspond pas au modèle PetTec PF 05WD pris en charge.",
+      "unknown": "Impossible de lire l’horloge du distributeur. Ce micrologiciel utilise peut-être un autre protocole."
+    },
+    "abort": {
+      "already_configured": "Ce distributeur est déjà configuré.",
+      "reauth_successful": "La clé d’accès a été mise à jour.",
+      "wrong_account": "Il s’agit d’un autre distributeur."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "clock": {
+        "name": "Horloge de l’appareil"
+      }
+    },
+    "number": {
+      "quantity": {
+        "name": "Quantité de nourriture"
+      },
+      "schedule_amount": {
+        "name": "Quantité du programme {slot}"
+      }
+    },
+    "button": {
+      "feed": {
+        "name": "Distribuer la quantité sélectionnée"
+      },
+      "sync_clock": {
+        "name": "Synchroniser l’horloge de l’appareil"
+      }
+    },
+    "time": {
+      "schedule_time": {
+        "name": "Heure du programme {slot}"
+      }
+    },
+    "select": {
+      "schedule_days": {
+        "name": "Jours du programme {slot}",
+        "state": {
+          "Every day": "Tous les jours",
+          "Monday–Friday": "Du lundi au vendredi",
+          "Saturday–Sunday": "Du samedi au dimanche",
+          "No days": "Aucun jour",
+          "Mon": "lun.",
+          "Tue": "mar.",
+          "Mon, Tue": "lun., mar.",
+          "Wed": "mer.",
+          "Mon, Wed": "lun., mer.",
+          "Tue, Wed": "mar., mer.",
+          "Mon, Tue, Wed": "lun., mar., mer.",
+          "Thu": "jeu.",
+          "Mon, Thu": "lun., jeu.",
+          "Tue, Thu": "mar., jeu.",
+          "Mon, Tue, Thu": "lun., mar., jeu.",
+          "Wed, Thu": "mer., jeu.",
+          "Mon, Wed, Thu": "lun., mer., jeu.",
+          "Tue, Wed, Thu": "mar., mer., jeu.",
+          "Mon, Tue, Wed, Thu": "lun., mar., mer., jeu.",
+          "Fri": "ven.",
+          "Mon, Fri": "lun., ven.",
+          "Tue, Fri": "mar., ven.",
+          "Mon, Tue, Fri": "lun., mar., ven.",
+          "Wed, Fri": "mer., ven.",
+          "Mon, Wed, Fri": "lun., mer., ven.",
+          "Tue, Wed, Fri": "mar., mer., ven.",
+          "Mon, Tue, Wed, Fri": "lun., mar., mer., ven.",
+          "Thu, Fri": "jeu., ven.",
+          "Mon, Thu, Fri": "lun., jeu., ven.",
+          "Tue, Thu, Fri": "mar., jeu., ven.",
+          "Mon, Tue, Thu, Fri": "lun., mar., jeu., ven.",
+          "Wed, Thu, Fri": "mer., jeu., ven.",
+          "Mon, Wed, Thu, Fri": "lun., mer., jeu., ven.",
+          "Tue, Wed, Thu, Fri": "mar., mer., jeu., ven.",
+          "Sat": "sam.",
+          "Mon, Sat": "lun., sam.",
+          "Tue, Sat": "mar., sam.",
+          "Mon, Tue, Sat": "lun., mar., sam.",
+          "Wed, Sat": "mer., sam.",
+          "Mon, Wed, Sat": "lun., mer., sam.",
+          "Tue, Wed, Sat": "mar., mer., sam.",
+          "Mon, Tue, Wed, Sat": "lun., mar., mer., sam.",
+          "Thu, Sat": "jeu., sam.",
+          "Mon, Thu, Sat": "lun., jeu., sam.",
+          "Tue, Thu, Sat": "mar., jeu., sam.",
+          "Mon, Tue, Thu, Sat": "lun., mar., jeu., sam.",
+          "Wed, Thu, Sat": "mer., jeu., sam.",
+          "Mon, Wed, Thu, Sat": "lun., mer., jeu., sam.",
+          "Tue, Wed, Thu, Sat": "mar., mer., jeu., sam.",
+          "Mon, Tue, Wed, Thu, Sat": "lun., mar., mer., jeu., sam.",
+          "Fri, Sat": "ven., sam.",
+          "Mon, Fri, Sat": "lun., ven., sam.",
+          "Tue, Fri, Sat": "mar., ven., sam.",
+          "Mon, Tue, Fri, Sat": "lun., mar., ven., sam.",
+          "Wed, Fri, Sat": "mer., ven., sam.",
+          "Mon, Wed, Fri, Sat": "lun., mer., ven., sam.",
+          "Tue, Wed, Fri, Sat": "mar., mer., ven., sam.",
+          "Mon, Tue, Wed, Fri, Sat": "lun., mar., mer., ven., sam.",
+          "Thu, Fri, Sat": "jeu., ven., sam.",
+          "Mon, Thu, Fri, Sat": "lun., jeu., ven., sam.",
+          "Tue, Thu, Fri, Sat": "mar., jeu., ven., sam.",
+          "Mon, Tue, Thu, Fri, Sat": "lun., mar., jeu., ven., sam.",
+          "Wed, Thu, Fri, Sat": "mer., jeu., ven., sam.",
+          "Mon, Wed, Thu, Fri, Sat": "lun., mer., jeu., ven., sam.",
+          "Tue, Wed, Thu, Fri, Sat": "mar., mer., jeu., ven., sam.",
+          "Mon, Tue, Wed, Thu, Fri, Sat": "lun., mar., mer., jeu., ven., sam.",
+          "Sun": "dim.",
+          "Mon, Sun": "lun., dim.",
+          "Tue, Sun": "mar., dim.",
+          "Mon, Tue, Sun": "lun., mar., dim.",
+          "Wed, Sun": "mer., dim.",
+          "Mon, Wed, Sun": "lun., mer., dim.",
+          "Tue, Wed, Sun": "mar., mer., dim.",
+          "Mon, Tue, Wed, Sun": "lun., mar., mer., dim.",
+          "Thu, Sun": "jeu., dim.",
+          "Mon, Thu, Sun": "lun., jeu., dim.",
+          "Tue, Thu, Sun": "mar., jeu., dim.",
+          "Mon, Tue, Thu, Sun": "lun., mar., jeu., dim.",
+          "Wed, Thu, Sun": "mer., jeu., dim.",
+          "Mon, Wed, Thu, Sun": "lun., mer., jeu., dim.",
+          "Tue, Wed, Thu, Sun": "mar., mer., jeu., dim.",
+          "Mon, Tue, Wed, Thu, Sun": "lun., mar., mer., jeu., dim.",
+          "Fri, Sun": "ven., dim.",
+          "Mon, Fri, Sun": "lun., ven., dim.",
+          "Tue, Fri, Sun": "mar., ven., dim.",
+          "Mon, Tue, Fri, Sun": "lun., mar., ven., dim.",
+          "Wed, Fri, Sun": "mer., ven., dim.",
+          "Mon, Wed, Fri, Sun": "lun., mer., ven., dim.",
+          "Tue, Wed, Fri, Sun": "mar., mer., ven., dim.",
+          "Mon, Tue, Wed, Fri, Sun": "lun., mar., mer., ven., dim.",
+          "Thu, Fri, Sun": "jeu., ven., dim.",
+          "Mon, Thu, Fri, Sun": "lun., jeu., ven., dim.",
+          "Tue, Thu, Fri, Sun": "mar., jeu., ven., dim.",
+          "Mon, Tue, Thu, Fri, Sun": "lun., mar., jeu., ven., dim.",
+          "Wed, Thu, Fri, Sun": "mer., jeu., ven., dim.",
+          "Mon, Wed, Thu, Fri, Sun": "lun., mer., jeu., ven., dim.",
+          "Tue, Wed, Thu, Fri, Sun": "mar., mer., jeu., ven., dim.",
+          "Mon, Tue, Wed, Thu, Fri, Sun": "lun., mar., mer., jeu., ven., dim.",
+          "Mon, Sat, Sun": "lun., sam., dim.",
+          "Tue, Sat, Sun": "mar., sam., dim.",
+          "Mon, Tue, Sat, Sun": "lun., mar., sam., dim.",
+          "Wed, Sat, Sun": "mer., sam., dim.",
+          "Mon, Wed, Sat, Sun": "lun., mer., sam., dim.",
+          "Tue, Wed, Sat, Sun": "mar., mer., sam., dim.",
+          "Mon, Tue, Wed, Sat, Sun": "lun., mar., mer., sam., dim.",
+          "Thu, Sat, Sun": "jeu., sam., dim.",
+          "Mon, Thu, Sat, Sun": "lun., jeu., sam., dim.",
+          "Tue, Thu, Sat, Sun": "mar., jeu., sam., dim.",
+          "Mon, Tue, Thu, Sat, Sun": "lun., mar., jeu., sam., dim.",
+          "Wed, Thu, Sat, Sun": "mer., jeu., sam., dim.",
+          "Mon, Wed, Thu, Sat, Sun": "lun., mer., jeu., sam., dim.",
+          "Tue, Wed, Thu, Sat, Sun": "mar., mer., jeu., sam., dim.",
+          "Mon, Tue, Wed, Thu, Sat, Sun": "lun., mar., mer., jeu., sam., dim.",
+          "Fri, Sat, Sun": "ven., sam., dim.",
+          "Mon, Fri, Sat, Sun": "lun., ven., sam., dim.",
+          "Tue, Fri, Sat, Sun": "mar., ven., sam., dim.",
+          "Mon, Tue, Fri, Sat, Sun": "lun., mar., ven., sam., dim.",
+          "Wed, Fri, Sat, Sun": "mer., ven., sam., dim.",
+          "Mon, Wed, Fri, Sat, Sun": "lun., mer., ven., sam., dim.",
+          "Tue, Wed, Fri, Sat, Sun": "mar., mer., ven., sam., dim.",
+          "Mon, Tue, Wed, Fri, Sat, Sun": "lun., mar., mer., ven., sam., dim.",
+          "Thu, Fri, Sat, Sun": "jeu., ven., sam., dim.",
+          "Mon, Thu, Fri, Sat, Sun": "lun., jeu., ven., sam., dim.",
+          "Tue, Thu, Fri, Sat, Sun": "mar., jeu., ven., sam., dim.",
+          "Mon, Tue, Thu, Fri, Sat, Sun": "lun., mar., jeu., ven., sam., dim.",
+          "Wed, Thu, Fri, Sat, Sun": "mer., jeu., ven., sam., dim.",
+          "Mon, Wed, Thu, Fri, Sat, Sun": "lun., mer., jeu., ven., sam., dim.",
+          "Tue, Wed, Thu, Fri, Sat, Sun": "mar., mer., jeu., ven., sam., dim."
+        }
+      }
+    },
+    "switch": {
+      "schedule_enabled": {
+        "name": "Programme {slot} activé"
+      },
+      "startup_clock_sync": {
+        "name": "Synchroniser l’horloge au démarrage de Home Assistant"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "schedule": {
+        "title": "Modifier le programme {slot}",
+        "description": "Les horaires utilisent l’horloge du distributeur, lue pour la dernière fois à {clock}. Vérifiez que la date et l’heure locales sont correctes avant d’activer un programme. L’envoi écrit ce créneau sur le distributeur puis vérifie les cinq créneaux ; les autres restent inchangés. Pour désactiver ce créneau, décochez Activé.",
+        "data": {
+          "enabled": "Activé",
+          "time": "Heure du repas",
+          "quantity": "Quantité de nourriture",
+          "weekdays": "Jours"
+        }
+      },
+      "schedules": {
+        "title": "Programmes de repas enregistrés",
+        "description": "Sélectionnez l’un des cinq programmes lus depuis le distributeur. L’ouverture de cet éditeur ne modifie aucun programme.",
+        "data": {
+          "slot": "Créneau du programme"
+        }
+      },
+      "init": {
+        "title": "Configurer le distributeur PetTec",
+        "menu_options": {
+          "schedules": "Programmes de repas enregistrés",
+          "clock": "Réglages de l’horloge"
+        }
+      },
+      "clock": {
+        "title": "Réglages de l’horloge",
+        "description": "Lorsque cette option est activée, l’horloge est synchronisée une fois au démarrage de Home Assistant selon son fuseau horaire local. Cette option est désactivée par défaut. Pour synchroniser immédiatement, utilisez le bouton Synchroniser l’horloge de l’appareil. Les changements d’horloge affectent l’exécution des programmes enregistrés. Une synchronisation échouée n’est pas réessayée automatiquement.",
+        "data": {
+          "sync_time_on_startup": "Synchroniser l’horloge au démarrage de Home Assistant"
+        }
+      }
+    },
+    "error": {
+      "invalid_schedule": "Choisissez une heure avec zéro seconde, une quantité entière de 1 à 200 g et au moins un jour pour un programme activé.",
+      "schedule_changed": "Ce créneau a été modifié pendant votre édition. Annulez puis rouvrez la configuration pour relire ses paramètres actuels.",
+      "cannot_save_schedule": "Impossible de vérifier la mise à jour du programme. Les modifications ont peut-être déjà été appliquées. Annulez puis rouvrez la configuration pour vérifier tous les programmes avant de réessayer."
+    },
+    "abort": {
+      "not_loaded": "Chargez l’intégration avant d’ouvrir son éditeur de programme.",
+      "cannot_read_schedules": "Impossible de lire les cinq programmes. Aucun programme n’a été modifié. Vérifiez la connexion ; ce micrologiciel utilise peut-être un autre format de programme.",
+      "invalid_schedule": "Choisissez un créneau de 1 à 5."
+    }
+  },
+  "selector": {
+    "weekdays": {
+      "options": {
+        "mon": "lundi",
+        "tue": "mardi",
+        "wed": "mercredi",
+        "thu": "jeudi",
+        "fri": "vendredi",
+        "sat": "samedi",
+        "sun": "dimanche"
+      }
+    },
+    "schedule_status": {
+      "options": {
+        "enabled": "Activé",
+        "disabled": "Désactivé",
+        "no_days": "Aucun jour"
+      }
+    }
+  },
+  "services": {
+    "dispense": {
+      "name": "Distribuer une portion",
+      "description": "Envoie une seule demande de distribution, sans réessai. Vérifiez la gamelle après toute erreur.",
+      "fields": {
+        "entity_id": {
+          "name": "Bouton de distribution"
+        },
+        "quantity": {
+          "name": "Quantité"
+        }
+      }
+    },
+    "save_schedule": {
+      "name": "Enregistrer un repas",
+      "description": "Enregistre et vérifie un repas complet. La carte transmet les valeurs d’origine pour refuser les modifications obsolètes.",
+      "fields": {
+        "entity_id": {
+          "name": "Entité d’heure du repas"
+        },
+        "slot": {
+          "name": "Numéro du repas"
+        },
+        "enabled": {
+          "name": "Activé"
+        },
+        "hour": {
+          "name": "Heure"
+        },
+        "minute": {
+          "name": "Minute"
+        },
+        "quantity": {
+          "name": "Quantité"
+        },
+        "weekdays": {
+          "name": "Masque des jours",
+          "description": "Lundi correspond au bit 0 et dimanche au bit 6. Tous les jours correspondent à 127."
+        },
+        "expected": {
+          "name": "Repas d’origine",
+          "description": "Valeurs d’origine activé, heure, minute, quantité et jours transmises par la carte."
+        }
+      }
+    }
+  }
+}
