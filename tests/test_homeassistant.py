@@ -823,7 +823,7 @@ async def test_card_resource_is_served_and_registration_is_idempotent(
     await load_feeder(hass, entry, client)
     await async_setup_dashboard(hass)
     async with TestClient(TestServer(hass.http.app)) as http:
-        response = await http.get("/pettec_local/pettec-cards.js?v=0.5.1")
+        response = await http.get("/pettec_local/pettec-cards.js?v=0.5.2")
         assert response.status == 200
         assert "pettec-schedule-card" in await response.text()
 
@@ -851,3 +851,79 @@ async def test_card_respects_entity_control_permissions(hass, entry, client):
                 context=Context(user_id="restricted-user"),
             )
     client.dispense.assert_not_called()
+
+
+async def test_card_resource_updates_lazy_storage_and_preserves_other_resources(
+    hass, entry, client
+):
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+    from homeassistant.components.lovelace.resources import ResourceStorageCollection
+    from homeassistant.loader import async_get_integration
+
+    from custom_components.pettec_local.dashboard import (
+        CARD_PATH,
+        async_register_card_resource,
+    )
+
+    await load_feeder(hass, entry, client)
+    lovelace = hass.data[LOVELACE_DATA]
+    resources = lovelace.resources
+    original = resources.async_items()[0]
+    await resources.async_update_item(
+        original["id"], {"url": CARD_PATH + "?v=0.5.1", "res_type": "js"}
+    )
+    await resources.async_create_item({"url": CARD_PATH, "res_type": "module"})
+    other = await resources.async_create_item(
+        {"url": "/local/unrelated-card.js", "res_type": "module"}
+    )
+    foreign = await resources.async_create_item(
+        {"url": "https://example.org" + CARD_PATH, "res_type": "module"}
+    )
+    await resources.store.async_save({"items": resources.async_items()})
+    lovelace.resources = ResourceStorageCollection(hass, resources.ll_config)
+    assert not lovelace.resources.loaded
+    await async_register_card_resource(hass)
+    version = (await async_get_integration(hass, DOMAIN)).version
+    expected = [
+        {"id": original["id"], "url": f"{CARD_PATH}?v={version}", "type": "module"},
+        other,
+        foreign,
+    ]
+    assert lovelace.resources.async_items() == expected
+    await async_register_card_resource(hass)
+    assert lovelace.resources.async_items() == expected
+    client.dispense.assert_not_called()
+
+
+async def test_card_resource_leaves_yaml_managed_resources_unchanged(
+    hass, entry, client
+):
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+    from homeassistant.components.lovelace.resources import ResourceYAMLCollection
+
+    from custom_components.pettec_local.dashboard import async_register_card_resource
+
+    await load_feeder(hass, entry, client)
+    lovelace = hass.data[LOVELACE_DATA]
+    lovelace.resource_mode = "yaml"
+    items = [{"url": "/local/another-card.js", "type": "module"}]
+    lovelace.resources = ResourceYAMLCollection(items.copy())
+    await async_register_card_resource(hass)
+    assert lovelace.resources.async_items() == items
+
+
+async def test_card_resource_storage_error_does_not_disable_actions(hass, caplog):
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    from custom_components.pettec_local.dashboard import async_setup_dashboard
+
+    assert await async_setup_component(hass, "lovelace", {})
+    with patch.object(
+        hass.data[LOVELACE_DATA].resources,
+        "async_get_info",
+        side_effect=OSError("Storage unavailable"),
+    ):
+        await async_setup_dashboard(hass)
+    assert hass.services.has_service(DOMAIN, "dispense")
+    assert hass.services.has_service(DOMAIN, "save_schedule")
+    assert "add it manually" in caplog.text

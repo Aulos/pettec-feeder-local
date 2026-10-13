@@ -201,18 +201,30 @@ The integration includes two cards in the integration download:
   the entered amount once. This does not change the device-page amount setting.
   An error is never automatically retried; check the bowl before trying again.
 
-After updating in HACS, **restart Home Assistant**, then:
+From v0.5.2, the integration **automatically registers and updates the shared
+JavaScript resource** when Home Assistant manages resources through the UI.
+Existing manual entries for `/pettec_local/pettec-cards.js` are updated in place;
+duplicate entries for that local file are consolidated. Other resources are preserved.
 
-1. Enable Advanced mode in your Home Assistant profile if needed.
-2. Open **Settings → Dashboards → ⋮ → Resources → Add resource**.
-3. Enter `/pettec_local/pettec-cards.js?v=0.5.1` and choose **JavaScript module**.
-4. Refresh your browser, edit a dashboard, and choose **Add card**. Search for
-   **PetTec**, add either card, and select your feeder from its dropdown.
+After updating in HACS, **restart Home Assistant and refresh your browser**.
+Edit a dashboard, choose **Add card**, search for **PetTec**, and select your
+feeder in the card editor. Both cards use the same resource; keep this repository
+registered in HACS as an **Integration**.
 
-Register the resource only once; both cards use the same file. On a future
-update, change the resource's `v=` value if your browser keeps the old card.
-For dashboards with YAML-managed resources, add the URL under
-`lovelace.resources` with `type: module` instead.
+If resources are managed in YAML, add this entry to your `lovelace.resources`
+configuration manually (the integration does not edit YAML):
+
+```yaml
+lovelace:
+  resource_mode: yaml
+  resources:
+    - url: /pettec_local/pettec-cards.js?v=0.5.2
+      type: module
+```
+
+If automatic registration fails, the integration logs the error while leaving
+feeder controls available. You can add the same URL manually under
+**Settings → Dashboards → ⋮ → Resources**, selecting **JavaScript module**.
 
 The equivalent card YAML is:
 
