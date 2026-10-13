@@ -1,0 +1,33 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect a PetTec PF 05WD",
+        "description": "The feeder must already be connected to your Wi-Fi, and you need its numeric Xlink access key. This integration does not provision Wi-Fi or recover keys. Setup only reads the device clock.",
+        "data": {"host": "Feeder IPv4 address", "access_key": "Xlink access key"}
+      },
+      "reauth_confirm": {
+        "title": "Correct the feeder access key",
+        "description": "Enter the numeric Xlink access key for this feeder. Verification only reads its clock.",
+        "data": {"access_key": "Xlink access key"}
+      }
+    },
+    "error": {
+      "invalid_host": "Enter the feeder's IPv4 address, for example 192.168.1.50.",
+      "cannot_connect": "Unable to connect. Check that the feeder is on Wi-Fi and reachable from Home Assistant.",
+      "invalid_auth": "The access key must be a number from 1 to 999999999 and must match the feeder.",
+      "unsupported_device": "This device does not match the supported PetTec PF 05WD product.",
+      "unknown": "Unable to read the feeder clock. This firmware may use a different protocol."
+    },
+    "abort": {
+      "already_configured": "This feeder is already configured.",
+      "reauth_successful": "The access key was updated.",
+      "wrong_account": "This is a different feeder."
+    }
+  },
+  "entity": {
+    "sensor": {"clock": {"name": "Device clock"}},
+    "number": {"quantity": {"name": "Feeding amount"}},
+    "button": {"feed": {"name": "Dispense selected quantity"}}
+  }
+}
