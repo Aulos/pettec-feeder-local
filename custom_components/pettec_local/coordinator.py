@@ -11,11 +11,11 @@ from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
+from pettec_xlink.feeder import FeederClient
+from pettec_xlink.protocol import ScheduleSlot
+from pettec_xlink.xlink import AuthenticationError, XlinkError
 
 from .const import CONF_QUANTITY, DEFAULT_QUANTITY, DOMAIN
-from .feeder import FeederClient
-from .protocol import ScheduleSlot
-from .xlink import AuthenticationError, XlinkError
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -18,6 +18,9 @@ from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers import device_registry, entity_registry, frame
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.setup import async_setup_component
+from pettec_xlink.feeder import ScheduleChangedError
+from pettec_xlink.protocol import ScheduleSlot
+from pettec_xlink.xlink import AuthenticationError, XlinkError
 
 from custom_components.pettec_local import async_setup_entry
 from custom_components.pettec_local.config_flow import PetTecConfigFlow
@@ -27,10 +30,7 @@ from custom_components.pettec_local.const import (
     MAX_QUANTITY,
 )
 from custom_components.pettec_local.coordinator import FeederCoordinator
-from custom_components.pettec_local.feeder import ScheduleChangedError
 from custom_components.pettec_local.number import FeedQuantity
-from custom_components.pettec_local.protocol import ScheduleSlot
-from custom_components.pettec_local.xlink import AuthenticationError, XlinkError
 
 CLOCK = datetime(2026, 10, 13, 12, 0, 0)
 
@@ -823,7 +823,7 @@ async def test_card_resource_is_served_and_registration_is_idempotent(
     await load_feeder(hass, entry, client)
     await async_setup_dashboard(hass)
     async with TestClient(TestServer(hass.http.app)) as http:
-        response = await http.get("/pettec_local/pettec-cards.js?v=0.5.5")
+        response = await http.get("/pettec_local/pettec-cards.js?v=0.6.0")
         assert response.status == 200
         assert "pettec-schedule-card" in await response.text()
 

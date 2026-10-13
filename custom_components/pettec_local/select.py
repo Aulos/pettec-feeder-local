@@ -2,8 +2,8 @@
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.exceptions import HomeAssistantError
+from pettec_xlink.protocol import SCHEDULE_COUNT
 
-from .protocol import SCHEDULE_COUNT
 from .schedule import ScheduleEntity
 
 DAY_NAMES = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")

@@ -13,9 +13,9 @@ from homeassistant.exceptions import HomeAssistantError, Unauthorized
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_registry as er
 from homeassistant.loader import async_get_integration
+from pettec_xlink.protocol import ScheduleSlot
 
 from .const import DOMAIN
-from .protocol import ScheduleSlot
 
 _LOGGER = logging.getLogger(__name__)
 CARD_PATH = "/pettec_local/pettec-cards.js"

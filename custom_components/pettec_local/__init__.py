@@ -6,11 +6,11 @@ from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.const import CONF_HOST, EVENT_HOMEASSISTANT_STARTED, Platform
 from homeassistant.core import CoreState, HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from pettec_xlink.feeder import FeederClient
 
 from .const import CONF_ACCESS_KEY, CONF_SYNC_TIME_STARTUP
 from .coordinator import FeederCoordinator
 from .dashboard import async_setup_dashboard
-from .feeder import FeederClient
 
 PLATFORMS = [
     Platform.SENSOR,

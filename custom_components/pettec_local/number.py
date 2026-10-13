@@ -3,10 +3,10 @@
 from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.const import EntityCategory
 from homeassistant.exceptions import HomeAssistantError
+from pettec_xlink.protocol import SCHEDULE_COUNT
 
 from .const import CONF_QUANTITY, MAX_QUANTITY, MIN_QUANTITY
 from .coordinator import FeederCoordinator
-from .protocol import SCHEDULE_COUNT
 from .schedule import ScheduleEntity
 
 

@@ -5,8 +5,8 @@ import asyncio
 import pytest
 from test_feeder import client_with_transport
 
-from custom_components.pettec_local.feeder import ScheduleChangedError
-from custom_components.pettec_local.protocol import (
+from pettec_xlink.feeder import ScheduleChangedError
+from pettec_xlink.protocol import (
     ProtocolError,
     ScheduleSlot,
     decode_frame,
@@ -14,7 +14,7 @@ from custom_components.pettec_local.protocol import (
     encode_frame,
     encode_schedules,
 )
-from custom_components.pettec_local.xlink import XlinkError
+from pettec_xlink.xlink import XlinkError
 
 # Literal records: Mon/Wed/Fri at 08:30, Sun at 19:00, and disabled slots.
 # The final slot preserves the stock app's high weekday bit and a wide quantity.

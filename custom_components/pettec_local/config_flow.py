@@ -10,11 +10,11 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_HOST
 from homeassistant.core import callback
 from homeassistant.helpers import selector, translation
+from pettec_xlink.feeder import FeederClient, ScheduleChangedError
+from pettec_xlink.protocol import ScheduleSlot
+from pettec_xlink.xlink import AuthenticationError, UnsupportedDeviceError, XlinkError
 
 from .const import CONF_ACCESS_KEY, CONF_SYNC_TIME_STARTUP, DOMAIN
-from .feeder import FeederClient, ScheduleChangedError
-from .protocol import ScheduleSlot
-from .xlink import AuthenticationError, UnsupportedDeviceError, XlinkError
 
 KEY_SELECTOR = selector.TextSelector(
     selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)

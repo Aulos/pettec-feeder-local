@@ -311,7 +311,7 @@ class XlinkClient:
                                     and frame[4] == payload[4] | 128
                                 ):
                                     result = frame
-                        except struct.error, IndexError:
+                        except (struct.error, IndexError):
                             continue
                     return result
             except BaseException:

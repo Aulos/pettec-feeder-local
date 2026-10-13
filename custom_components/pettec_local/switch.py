@@ -2,9 +2,9 @@
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.const import EntityCategory
+from pettec_xlink.protocol import SCHEDULE_COUNT
 
 from .const import CONF_SYNC_TIME_STARTUP
-from .protocol import SCHEDULE_COUNT
 from .schedule import ScheduleEntity
 
 

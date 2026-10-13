@@ -169,7 +169,7 @@ configuration storage.
 
 ```sh
 python3.14 -m venv .venv
-.venv/bin/python -m pip install '.[homeassistant-test]' ruff
+.venv/bin/python -m pip install -e ./pettec-protocol '.[homeassistant-test]' ruff
 .venv/bin/python -m pytest -q
 .venv/bin/ruff check .
 ```
@@ -186,6 +186,22 @@ The [Xlink evidence ledger](docs/xlink-evidence.md) records the APK digest,
 source classes and DEX offsets. Decompiled Java is investigation material and
 is not distributed in this repository. This project is independent of PetTec,
 Homerun and Xlink.
+
+## Protocol library and releases
+
+The repository contains the HACS integration in `custom_components/pettec_local`
+and the independent [`pettec-xlink` Python package](pettec-protocol/README.md) in
+`pettec-protocol`. The integration pins the published library version in its
+manifest. Home Assistant installs that dependency from PyPI during setup.
+
+The library contains the existing feeder commands, packet encoding, validation
+and local UDP transport. Its tests run independently on Python 3.11 and 3.14.
+The integration and provisioning tests also run against the extracted library.
+
+See [library publishing setup](pettec-protocol/PUBLISHING.md) for PyPI Trusted
+Publishing configuration. Publish the library before releasing an integration
+version that depends on it. Library tags use `protocol-v*` without GitHub Release
+objects; integration GitHub releases keep the `v*` tags used by HACS.
 
 ## Dashboard cards
 
@@ -218,7 +234,7 @@ configuration manually (the integration does not edit YAML):
 lovelace:
   resource_mode: yaml
   resources:
-    - url: /pettec_local/pettec-cards.js?v=0.5.5
+    - url: /pettec_local/pettec-cards.js?v=0.6.0
       type: module
 ```
 

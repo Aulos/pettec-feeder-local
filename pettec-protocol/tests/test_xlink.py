@@ -1,20 +1,10 @@
 """Protocol vectors and loopback-only simulations; no real device required."""
 
 import asyncio
-import importlib.util
 import struct
-import sys
 import unittest
-from pathlib import Path
 
-NAME = "pettec_xlink_tested"
-SPEC = importlib.util.spec_from_file_location(
-    NAME, Path(__file__).parents[1] / "custom_components/pettec_local/xlink.py"
-)
-xlink = importlib.util.module_from_spec(SPEC)
-sys.modules[NAME] = xlink
-SPEC.loader.exec_module(xlink)
-
+from pettec_xlink import xlink
 
 MAC = bytes.fromhex("AABBCCDDEEFF")
 REQUEST = bytes.fromhex("57 AB FF FF 03 00 03")

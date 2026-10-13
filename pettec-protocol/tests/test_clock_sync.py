@@ -5,12 +5,12 @@ from datetime import datetime, timezone
 import pytest
 from test_feeder import client_with_transport
 
-from custom_components.pettec_local.protocol import (
+from pettec_xlink.protocol import (
     clock_payload,
     decode_frame,
     encode_frame,
 )
-from custom_components.pettec_local.xlink import XlinkError
+from pettec_xlink.xlink import XlinkError
 
 NOW = datetime(2026, 10, 13, 14, 30, 45)
 PAYLOAD = bytes.fromhex("1a 0a 0d 0e 1e 2d 02")
@@ -83,9 +83,7 @@ async def test_clock_readback_mismatch_is_not_success(monkeypatch):
 async def test_verification_allows_clock_ticks_during_transport(monkeypatch):
     client, transport = client_with_transport(monkeypatch)
     times = iter([100.0, 103.0])
-    monkeypatch.setattr(
-        "custom_components.pettec_local.feeder.monotonic", lambda: next(times)
-    )
+    monkeypatch.setattr("pettec_xlink.feeder.monotonic", lambda: next(times))
     transport.send_pipe.side_effect = [
         encode_frame(0x84, b"\x00"),
         encode_frame(0x83, bytes.fromhex("1a 0a 0d 0e 1e 30 02")),

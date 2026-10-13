@@ -208,8 +208,9 @@ def main() -> int:
             spec = importlib.util.spec_from_file_location(
                 "pettec_bootstrap_xlink",
                 Path(__file__).parents[1]
-                / "custom_components"
-                / "pettec_local"
+                / "pettec-protocol"
+                / "src"
+                / "pettec_xlink"
                 / "xlink.py",
             )
             xlink = importlib.util.module_from_spec(spec)

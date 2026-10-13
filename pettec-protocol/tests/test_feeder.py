@@ -6,9 +6,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from custom_components.pettec_local.feeder import FeederClient
-from custom_components.pettec_local.protocol import encode_frame
-from custom_components.pettec_local.xlink import XlinkError
+from pettec_xlink.feeder import FeederClient
+from pettec_xlink.protocol import encode_frame
+from pettec_xlink.xlink import XlinkError
 
 
 def client_with_transport(monkeypatch, response=None, error=None):
@@ -16,9 +16,7 @@ def client_with_transport(monkeypatch, response=None, error=None):
     transport.mac = "aabbccddeeff"
     transport.send_pipe.return_value = response
     transport.send_pipe.side_effect = error
-    monkeypatch.setattr(
-        "custom_components.pettec_local.feeder.XlinkClient", lambda *args: transport
-    )
+    monkeypatch.setattr("pettec_xlink.feeder.XlinkClient", lambda *args: transport)
     return FeederClient("192.0.2.1", 123456789), transport
 
 

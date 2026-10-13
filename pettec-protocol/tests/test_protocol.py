@@ -4,7 +4,7 @@ from datetime import datetime
 
 import pytest
 
-from custom_components.pettec_local.protocol import (
+from pettec_xlink.protocol import (
     ProtocolError,
     decode_clock,
     decode_frame,

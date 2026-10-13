@@ -4,8 +4,8 @@ from datetime import time
 
 from homeassistant.components.time import TimeEntity
 from homeassistant.exceptions import HomeAssistantError
+from pettec_xlink.protocol import SCHEDULE_COUNT
 
-from .protocol import SCHEDULE_COUNT
 from .schedule import ScheduleEntity
 
 
