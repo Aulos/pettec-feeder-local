@@ -1,6 +1,8 @@
 """Read-only polling and explicit dispensing."""
 
+import asyncio
 import logging
+from dataclasses import replace
 from datetime import datetime, timedelta
 
 from homeassistant.config_entries import ConfigEntry
@@ -12,6 +14,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import CONF_QUANTITY, DEFAULT_QUANTITY, DOMAIN
 from .feeder import FeederClient
+from .protocol import ScheduleSlot
 from .xlink import AuthenticationError, XlinkError
 
 _LOGGER = logging.getLogger(__name__)
@@ -32,6 +35,7 @@ class FeederCoordinator(DataUpdateCoordinator[datetime]):
         )
         self.client = client
         self.entry = entry
+        self.schedules = ScheduleCoordinator(hass, entry, client)
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -83,3 +87,49 @@ class FeederCoordinator(DataUpdateCoordinator[datetime]):
                 "check the device clock before trying again."
             ) from err
         self.async_set_updated_data(actual)
+
+
+class ScheduleCoordinator(DataUpdateCoordinator[tuple[ScheduleSlot, ...]]):
+    """Refresh stored schedules independently of clock and feeding availability."""
+
+    def __init__(self, hass, entry, client):
+        super().__init__(
+            hass,
+            _LOGGER,
+            config_entry=entry,
+            name="PetTec schedules",
+            update_interval=timedelta(minutes=1),
+        )
+        self.client = client
+        self._edit_lock = asyncio.Lock()
+
+    async def _async_update_data(self):
+        async with self._edit_lock:
+            try:
+                await self.client.connect()
+                return await self.client.get_schedules()
+            except (XlinkError, OSError, TimeoutError, ValueError) as err:
+                raise UpdateFailed("Unable to read stored feeding schedules") from err
+
+    async def async_change_slot(self, slot: int, **changes) -> None:
+        """Apply one field to a freshly verified slot, preserving the other four."""
+        try:
+            async with self._edit_lock:
+                if self.data is None or not self.last_update_success:
+                    raise HomeAssistantError("Stored schedules are unavailable")
+                expected = self.data[slot - 1]
+                updated = replace(expected, **changes)
+                actual = await self.client.update_schedule(
+                    slot, updated, expected=expected
+                )
+                self.async_set_updated_data(actual)
+        except ValueError as err:
+            raise HomeAssistantError(str(err)) from err
+        except (XlinkError, OSError, TimeoutError) as err:
+            await self.client.close()
+            # Only read after an uncertain write; never repeat the write itself.
+            await self.async_refresh()
+            raise HomeAssistantError(
+                "Unable to verify schedule change. Check the refreshed schedule "
+                "before trying again; the change may already have been applied."
+            ) from err

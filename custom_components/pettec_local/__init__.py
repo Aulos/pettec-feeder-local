@@ -11,7 +11,14 @@ from .const import CONF_ACCESS_KEY, CONF_SYNC_TIME_STARTUP
 from .coordinator import FeederCoordinator
 from .feeder import FeederClient
 
-PLATFORMS = [Platform.SENSOR, Platform.NUMBER, Platform.BUTTON]
+PLATFORMS = [
+    Platform.SENSOR,
+    Platform.NUMBER,
+    Platform.BUTTON,
+    Platform.TIME,
+    Platform.SELECT,
+    Platform.SWITCH,
+]
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -22,6 +29,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     try:
         await coordinator.async_config_entry_first_refresh()
         entry.runtime_data = coordinator
+        # Unsupported schedule reads must not disable working manual controls.
+        await coordinator.schedules.async_refresh()
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
         if hass.state in (CoreState.not_running, CoreState.starting):
 

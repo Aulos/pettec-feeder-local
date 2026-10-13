@@ -39,6 +39,9 @@
     "number": {
       "quantity": {
         "name": "Feeding amount"
+      },
+      "schedule_amount": {
+        "name": "Schedule {slot} amount"
       }
     },
     "button": {
@@ -47,6 +50,24 @@
       },
       "sync_clock": {
         "name": "Sync device clock"
+      }
+    },
+    "time": {
+      "schedule_time": {
+        "name": "Schedule {slot} time"
+      }
+    },
+    "select": {
+      "schedule_days": {
+        "name": "Schedule {slot} weekdays"
+      }
+    },
+    "switch": {
+      "schedule_enabled": {
+        "name": "Schedule {slot} enabled"
+      },
+      "startup_clock_sync": {
+        "name": "Sync device clock on Home Assistant startup"
       }
     }
   },

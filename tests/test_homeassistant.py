@@ -1,6 +1,7 @@
 """Exercise the real Home Assistant classes against a controlled feeder client."""
 
-from datetime import datetime
+from dataclasses import replace
+from datetime import datetime, time
 from types import MappingProxyType, SimpleNamespace
 from unittest.mock import AsyncMock, patch
 from zoneinfo import ZoneInfo
@@ -11,7 +12,7 @@ pytest.importorskip("homeassistant")
 
 from homeassistant import data_entry_flow, loader
 from homeassistant.config_entries import ConfigEntries, ConfigEntry, ConfigEntryState
-from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
+from homeassistant.const import EVENT_HOMEASSISTANT_STARTED, EntityCategory
 from homeassistant.core import CoreState, HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers import device_registry, entity_registry, frame
@@ -65,16 +66,31 @@ def entry():
 
 @pytest.fixture
 def client():
-    return SimpleNamespace(
+    mock = SimpleNamespace(
         mac="00:11:22:33:44:55",
         connect=AsyncMock(),
         close=AsyncMock(),
         get_clock=AsyncMock(return_value=CLOCK),
         set_clock=AsyncMock(return_value=CLOCK),
         dispense=AsyncMock(),
-        get_schedules=AsyncMock(),
+        get_schedules=AsyncMock(return_value=SCHEDULES),
         update_schedule=AsyncMock(),
     )
+
+    async def update(slot, schedule, *, expected):
+        current = list(mock.get_schedules.return_value)
+        if current[slot - 1] != expected:
+            raise ScheduleChangedError("changed")
+        if schedule.enabled and (
+            not 1 <= schedule.quantity <= 200 or not schedule.weekdays & 127
+        ):
+            raise ValueError("Enabled schedules need an amount and weekdays")
+        current[slot - 1] = schedule
+        mock.get_schedules.return_value = tuple(current)
+        return tuple(current)
+
+    mock.update_schedule.side_effect = update
+    return mock
 
 
 async def test_config_flow_reads_clock_and_closes_without_feeding(hass, client):
@@ -239,8 +255,8 @@ async def test_quantity_is_saved_without_feeding(hass, entry, client):
         await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
     numbers = list(hass.data["number"].entities)
-    assert len(numbers) == 1
-    number = numbers[0]
+    assert len(numbers) == 6
+    number = next(number for number in numbers if number.translation_key == "quantity")
     await number.async_set_native_value(25)
     assert entry.options["quantity"] == 25
     assert number.native_value == 25
@@ -305,7 +321,7 @@ async def start_schedule_editor(hass, entry, client):
 
 async def test_schedule_options_read_then_save_without_feeding(hass, entry, client):
     result = await start_schedule_editor(hass, entry, client)
-    assert client.get_schedules.await_count == 2
+    assert client.get_schedules.await_count == 3
     # A number change made while the editor is open must also be preserved.
     hass.config_entries.async_update_entry(entry, options={"quantity": 67})
     result = await hass.config_entries.options.async_configure(
@@ -505,3 +521,229 @@ async def test_startup_clock_failure_is_logged_and_not_retried(
     client.close.assert_awaited_once()
     assert "Startup clock sync failed" in caplog.text
     client.dispense.assert_not_awaited()
+
+
+def schedule_entities(hass):
+    return [
+        entity
+        for platform in ("time", "number", "select", "switch")
+        for entity in hass.data[platform].entities
+        if hasattr(entity, "slot_number")
+    ]
+
+
+async def test_all_schedule_controls_are_configuration_entities_on_same_device(
+    hass, entry, client
+):
+    await load_feeder(hass, entry, client)
+    entities = schedule_entities(hass)
+    assert len(entities) == 20
+    assert len({entity.unique_id for entity in entities}) == 20
+    registry = entity_registry.async_get(hass)
+    sensor = next(iter(hass.data["sensor"].entities))
+    device_id = registry.async_get(sensor.entity_id).device_id
+    assert device_id is not None
+    for entity in entities:
+        registered = registry.async_get(entity.entity_id)
+        assert registered.entity_category is EntityCategory.CONFIG
+        assert registered.device_id == device_id
+        assert entity.available
+    client.update_schedule.assert_not_awaited()
+
+
+async def test_device_page_can_configure_and_enable_an_empty_slot(hass, entry, client):
+    await load_feeder(hass, entry, client)
+    controls = {
+        entity.translation_key: entity
+        for entity in schedule_entities(hass)
+        if entity.slot_number == 2
+    }
+    for domain, service, key, data in [
+        ("time", "set_value", "schedule_time", {"time": "07:45:00"}),
+        ("number", "set_value", "schedule_amount", {"value": 15}),
+        ("select", "select_option", "schedule_days", {"option": "Mon, Wed, Fri"}),
+        ("switch", "turn_on", "schedule_enabled", {}),
+    ]:
+        await hass.services.async_call(
+            domain,
+            service,
+            {"entity_id": controls[key].entity_id, **data},
+            blocking=True,
+        )
+    expected = ScheduleSlot(True, 7, 45, 15, 21)
+    assert entry.runtime_data.schedules.data == (SCHEDULES[0], expected, *SCHEDULES[2:])
+    assert hass.states.get(controls["schedule_time"].entity_id).state == "07:45:00"
+    assert hass.states.get(controls["schedule_amount"].entity_id).state == "15"
+    assert hass.states.get(controls["schedule_days"].entity_id).state == "Mon, Wed, Fri"
+    assert hass.states.get(controls["schedule_enabled"].entity_id).state == "on"
+    assert client.update_schedule.await_count == 4
+    client.dispense.assert_not_awaited()
+    client.set_clock.assert_not_awaited()
+
+
+async def test_weekday_control_preserves_reserved_bit_and_allows_all_combinations(
+    hass, entry, client
+):
+    from custom_components.pettec_local.select import DAY_OPTIONS
+
+    assert set(DAY_OPTIONS.values()) == set(range(128))
+    await load_feeder(hass, entry, client)
+    control = next(
+        entity for entity in hass.data["select"].entities if entity.slot_number == 1
+    )
+    assert control.current_option == "Every day"
+    await control.async_select_option("Mon, Wed, Fri")
+    assert entry.runtime_data.schedules.data[0].weekdays == 0x95
+    assert control.current_option == "Mon, Wed, Fri"
+
+
+@pytest.mark.parametrize(
+    "platform,key,value",
+    [
+        ("time", "schedule_time", time(8, 0, 1)),
+        ("number", "schedule_amount", 1.5),
+        ("select", "schedule_days", "Not a weekday"),
+    ],
+)
+async def test_invalid_device_page_fields_do_not_write(
+    hass, entry, client, platform, key, value
+):
+    await load_feeder(hass, entry, client)
+    control = next(
+        entity
+        for entity in hass.data[platform].entities
+        if entity.translation_key == key and entity.slot_number == 1
+    )
+    method = {
+        "time": "async_set_value",
+        "number": "async_set_native_value",
+        "select": "async_select_option",
+    }[platform]
+    with pytest.raises(HomeAssistantError):
+        await getattr(control, method)(value)
+    client.update_schedule.assert_not_awaited()
+
+
+async def test_empty_slot_cannot_be_enabled_until_configured(hass, entry, client):
+    await load_feeder(hass, entry, client)
+    control = next(
+        entity
+        for entity in hass.data["switch"].entities
+        if getattr(entity, "slot_number", None) == 2
+    )
+    with pytest.raises(HomeAssistantError, match="amount and weekdays"):
+        await control.async_turn_on()
+    assert control.is_on is False
+    assert entry.runtime_data.schedules.data == SCHEDULES
+
+
+async def test_failed_device_page_write_reads_actual_state_without_retry(
+    hass, entry, client
+):
+    await load_feeder(hass, entry, client)
+    control = next(
+        entity
+        for entity in hass.data["number"].entities
+        if getattr(entity, "slot_number", None) == 1
+    )
+
+    async def applied_without_ack(slot, schedule, **kwargs):
+        current = list(client.get_schedules.return_value)
+        current[slot - 1] = schedule
+        client.get_schedules.return_value = tuple(current)
+        raise TimeoutError("acknowledgement lost")
+
+    client.update_schedule.side_effect = applied_without_ack
+    with pytest.raises(HomeAssistantError, match="may already have been applied"):
+        await control.async_set_native_value(33)
+    client.update_schedule.assert_awaited_once()
+    assert client.get_schedules.await_count == 2
+    assert control.native_value == 33
+    assert entry.runtime_data.schedules.data[1:] == SCHEDULES[1:]
+    client.dispense.assert_not_awaited()
+
+
+async def test_schedule_read_failure_keeps_manual_controls_and_preferences_available(
+    hass, entry, client
+):
+    client.get_schedules.side_effect = XlinkError("unsupported schedule response")
+    await load_feeder(hass, entry, client)
+    assert not any(entity.available for entity in schedule_entities(hass))
+    buttons = list(hass.data["button"].entities)
+    assert all(button.available for button in buttons)
+    preference = next(
+        entity
+        for entity in hass.data["switch"].entities
+        if entity.translation_key == "startup_clock_sync"
+    )
+    assert preference.available
+    await preference.async_turn_on()
+    assert entry.options[CONF_SYNC_TIME_STARTUP] is True
+    client.update_schedule.assert_not_awaited()
+    client.close.assert_not_awaited()
+
+
+async def test_startup_preference_on_device_page_is_saved_without_network_writes(
+    hass, entry, client
+):
+    await load_feeder(hass, entry, client)
+    hass.config_entries.async_update_entry(entry, options={"quantity": 67})
+    preference = next(
+        entity
+        for entity in hass.data["switch"].entities
+        if entity.translation_key == "startup_clock_sync"
+    )
+    assert preference.is_on is False
+    registry = entity_registry.async_get(hass)
+    assert (
+        registry.async_get(preference.entity_id).entity_category
+        is EntityCategory.CONFIG
+    )
+    for service, enabled in [("turn_on", True), ("turn_off", False)]:
+        await hass.services.async_call(
+            "switch", service, {"entity_id": preference.entity_id}, blocking=True
+        )
+        await hass.async_block_till_done()
+        assert entry.options == {"quantity": 67, CONF_SYNC_TIME_STARTUP: enabled}
+        assert preference.is_on is enabled
+        assert hass.states.get(preference.entity_id).state == (
+            "on" if enabled else "off"
+        )
+    client.update_schedule.assert_not_awaited()
+    client.set_clock.assert_not_awaited()
+    client.dispense.assert_not_awaited()
+
+
+async def test_editor_updates_device_page_schedule_controls(hass, entry, client):
+    result = await start_schedule_editor(hass, entry, client)
+    await hass.config_entries.options.async_configure(result["flow_id"], SCHEDULE_INPUT)
+    controls = {
+        entity.translation_key: entity
+        for entity in schedule_entities(hass)
+        if entity.slot_number == 1
+    }
+    assert controls["schedule_time"].native_value == time(9, 15)
+    assert controls["schedule_amount"].native_value == 30
+    assert controls["schedule_days"].current_option == "Mon, Sun"
+    assert controls["schedule_enabled"].is_on is True
+
+
+async def test_failed_read_does_not_allow_schedule_writes(hass, entry, client):
+    await load_feeder(hass, entry, client)
+    client.get_schedules.side_effect = TimeoutError()
+    await entry.runtime_data.schedules.async_refresh()
+    with pytest.raises(HomeAssistantError, match="unavailable"):
+        await entry.runtime_data.schedules.async_change_slot(1, quantity=33)
+    client.update_schedule.assert_not_awaited()
+
+
+async def test_stale_device_page_edit_refreshes_without_overwriting(
+    hass, entry, client
+):
+    await load_feeder(hass, entry, client)
+    changed = replace(SCHEDULES[0], quantity=40)
+    client.get_schedules.return_value = (changed, *SCHEDULES[1:])
+    with pytest.raises(HomeAssistantError):
+        await entry.runtime_data.schedules.async_change_slot(1, quantity=33)
+    assert entry.runtime_data.schedules.data[0] == changed
+    client.update_schedule.assert_awaited_once()

@@ -18,8 +18,8 @@ setup, schedule forms and entity lifecycle. Firmware behavior can still differ.
 - Saved feeding amount, from 1 to 200 grams, matching the stock app's manual UI.
 - A button that sends one feeding request. Feeding commands are never retried
   automatically after an uncertain result.
-- An editor for five schedules stored on the feeder, with time, quantity,
-  weekdays and an enabled flag for each slot.
+- Device-page controls for five stored schedules: time, amount, weekdays and
+  an enabled switch, plus an editor for changing a whole slot at once.
 - Separate Wi-Fi provisioning helper and explicit initial access-key assignment.
 
 Requires Home Assistant **2026.10.0 or later**. Framework tests currently use
@@ -34,8 +34,9 @@ The standalone provisioning helper requires Python 3.11 or later.
 4. Open **Settings → Devices & services → Add integration**, and search for PetTec.
 5. Enter the feeder's IPv4 address and its numeric Xlink access key.
 
-Setup performs authentication and a read-only clock request before it creates
-controls. Clock sync on startup is off by default and must be enabled explicitly.
+Setup performs authentication and read-only clock and schedule requests before
+it creates controls. If schedule reads fail, schedule controls are unavailable;
+manual feeding and clock controls can still work. Clock sync on startup is off by default and must be enabled explicitly.
 Setup does not configure Wi-Fi, feed, reset the device, or update firmware.
 Reserve the feeder's IPv4 address in your router so it remains stable.
 
@@ -44,12 +45,21 @@ Assistant configuration's `custom_components` directory and restart.
 
 ## Stored feeding schedules
 
-Update the integration in HACS and restart Home Assistant. Open **Settings →
-Devices & services → PetTec PF 05WD → Configure → Stored feeding schedules**.
-The editor reads all five
-slots and shows their current settings. Select a slot, choose the time, amount
-in whole grams, weekdays and whether it is enabled, then submit. Open Configure
-again to inspect the stored result or edit another slot.
+Update the integration in HACS and restart Home Assistant. Open the feeder's
+**device page → Configuration**. Each of the five slots has **Enabled**, **Time**,
+**Amount** and **Weekdays** controls. The weekday dropdown includes every day,
+Monday–Friday, Saturday–Sunday and all individual day combinations. No separate
+frontend card is required.
+
+Each field saves immediately and verifies the stored result. Disable a slot
+before changing several fields, check its time, amount and weekdays, then enable
+it again. An unused slot may show zero grams and no days; choose 1–200 grams
+and at least one weekday before enabling it. Schedule controls refresh once a
+minute and after successful writes. Failed writes trigger a read, not a retry.
+
+For a single Save covering all fields, the existing **Configure → Stored feeding
+schedules** editor remains available, including weekday multiselect. It reads
+all five slots before editing and updates the device-page controls after saving.
 
 The time follows the **feeder's own clock**. The form displays the most recent
 clock reading; check that its local date and time are correct before enabling
@@ -76,9 +86,11 @@ Assistant's current local date and time. Home Assistant's configured time zone
 is used, including its current daylight saving offset. One clock write is sent,
 then the clock is read back to verify it and update the device clock sensor.
 
-For automatic synchronization, open **Configure → Clock settings**, enable
-**Sync device clock on Home Assistant startup**, and submit. This defaults to
-off. Enabling it saves a preference; use the button to sync immediately. On
+For automatic synchronization, turn on **Sync device clock on Home Assistant
+startup** in the feeder device page's **Configuration** section. This defaults
+to off. The switch saves the preference immediately and does not contact the
+feeder; use the clock button to sync immediately. The existing Configure dialog
+continues to use the same saved preference. On
 the next Home Assistant restart, one attempt is made after startup completes.
 Integration reloads and reconnects do not trigger synchronization. The integration
 must finish loading before the startup event; if it misses startup or sync fails,

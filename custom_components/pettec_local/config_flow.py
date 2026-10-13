@@ -241,7 +241,7 @@ class PetTecOptionsFlow(config_entries.OptionsFlow):
                 errors["base"] = "invalid_schedule"
             else:
                 try:
-                    await client.update_schedule(
+                    actual = await client.update_schedule(
                         self._slot, schedule, expected=self._original
                     )
                 except ScheduleChangedError:
@@ -250,6 +250,9 @@ class PetTecOptionsFlow(config_entries.OptionsFlow):
                     await client.close()
                     errors["base"] = "cannot_save_schedule"
                 else:
+                    self.config_entry.runtime_data.schedules.async_set_updated_data(
+                        actual
+                    )
                     return self.async_create_entry(data=dict(self.config_entry.options))
         slot = self._original
         schema = probatio.Schema(

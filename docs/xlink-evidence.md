@@ -150,3 +150,22 @@ on `EVENT_HOMEASSISTANT_STARTED`, and its listener is removed on unload. Reloadi
 an integration while Home Assistant is running does not write the clock. A missed
 startup or failed sync requires an explicit manual button press. No periodic,
 reconnect or daylight-saving clock writes are added.
+
+
+## Device-page schedule controls
+
+Version 0.4.0 exposes five time, amount, weekday and enabled controls using
+Home Assistant time, number, select and switch entities. Every schedule entity
+has `EntityCategory.CONFIG` and the same device identity as the clock sensor.
+The weekday dropdown covers all 128 masks, including no days for a disabled
+slot; it preserves the high weekday bit. The startup-sync switch stores the
+existing config-entry option without sending any feeder command.
+
+A separate coordinator reads schedules every minute so unsupported schedule
+responses do not prevent clock setup or disable working manual controls. Each
+field edit reuses the existing read/modify/write/readback implementation. Edits
+are serialized, untouched fields and slots are preserved, and an uncertain or
+stale write is followed only by a read. Successful editor saves update the same
+cache and device-page entities. The real Home Assistant tests verify entity
+registration, category, device identity and native service calls; they do not
+provide a screenshot or physical-device verification.
