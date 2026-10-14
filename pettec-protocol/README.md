@@ -1,5 +1,10 @@
 # pettec-xlink
 
+Version 0.3.0 adds the remaining APK commands as library-only APIs. Home
+Assistant continues to use its existing 0.2.0 dependency. See the
+[command reference](https://github.com/Aulos/pettec-feeder-local/blob/main/pettec-protocol/COMMANDS.md)
+for packet layouts and the limits of the recovered maintenance operations.
+
 An async Python client for local control of PetTec PF 05WD feeders over Xlink UDP.
 It supports reading and setting the device clock, dispensing a selected amount,
 reading and updating the five stored feeding schedules, food and battery

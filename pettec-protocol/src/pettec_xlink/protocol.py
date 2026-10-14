@@ -5,11 +5,34 @@ from dataclasses import dataclass
 from datetime import datetime
 
 HEADER = b"\x57\xab"
+CHECK_CONNECTION = 0x01
+READ_DEVICE_INFO = 0x02
 READ_CLOCK = 0x03
 SET_CLOCK = 0x04
 READ_SCHEDULES = 0x05
 WRITE_SCHEDULES = 0x06
+ERASE_FLASH = 0x07
+WRITE_FLASH = 0x08
+READ_FLASH = 0x09
+READ_MODULE_ADDRESS = 0x0A
 FEED = 0x0C
+RESET_DEVICE = 0x0E
+READ_FEED_RECORD = 0x0F
+FEED_DATA_OFFSET_OR_CRADLE = 0x13
+READ_ALARMS = 0x14
+CONTROL_CAMERA = 0x15
+BEGIN_UPGRADE = 0x18
+WRITE_MCU = 0x19
+CHECK_MCU = 0x1A
+COMPLETE_UPGRADE = 0x1B
+ENABLE_UPGRADE = 0x1C
+READ_FIRMWARE_VERSION = 0x1D
+READ_FEEDER_INFO = 0x1F
+BEGIN_AUDIO = 0x20
+WRITE_AUDIO = 0x21
+COMPLETE_AUDIO = 0x22
+FEED_CALIBRATION = 0x27
+ENTER_BOOT = 0x3F
 MAX_FEED_GRAMS = 200
 SCHEDULE_COUNT = 5
 
@@ -135,6 +158,34 @@ def feed_payload(grams: int) -> bytes:
     if type(grams) is not int or not 1 <= grams <= MAX_FEED_GRAMS:
         raise ValueError(f"Feeding amount must be 1–{MAX_FEED_GRAMS} whole grams")
     return struct.pack(">H", grams)
+
+
+def unsigned(value: int, maximum: int = 255) -> int:
+    """Reject coercion and truncation before building a maintenance packet."""
+    if type(value) is not int or not 0 <= value <= maximum:
+        raise ValueError(f"Expected a whole number from 0 to {maximum}")
+    return value
+
+
+def data_bytes(value: bytes, minimum: int = 0, maximum: int = 255) -> bytes:
+    if not isinstance(value, bytes) or not minimum <= len(value) <= maximum:
+        raise ValueError(f"Expected bytes with length {minimum}..{maximum}")
+    return value
+
+
+def upload_chunk_payload(index: int, data: bytes) -> bytes:
+    """WriteAudioUsecase and secondary MCU: index, byte sum, up to 128 bytes."""
+    data = data_bytes(data, 1, 128)
+    return struct.pack(">HB", unsigned(index, 65535), sum(data) & 255) + data
+
+
+def audio_metadata(date: bytes, file_size: int, checksum: int) -> bytes:
+    """The app prefixes ten opaque date bytes with five zeros."""
+    return (
+        b"\x00" * 5
+        + data_bytes(date, 10, 10)
+        + struct.pack(">IB", unsigned(file_size, 0xFFFFFFFF), unsigned(checksum))
+    )
 
 
 READ_REMAINING_FOOD = 0x10
