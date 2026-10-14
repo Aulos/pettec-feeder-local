@@ -34,6 +34,12 @@
     "sensor": {
       "clock": {
         "name": "Device clock"
+      },
+      "remaining_food": {
+        "name": "Remaining food"
+      },
+      "remaining_battery": {
+        "name": "Remaining battery"
       }
     },
     "number": {
@@ -50,6 +56,12 @@
       },
       "sync_clock": {
         "name": "Sync device clock"
+      },
+      "control_tray": {
+        "name": "Control food tray"
+      },
+      "reset_feeding_weight": {
+        "name": "Tare food weight"
       }
     },
     "time": {
@@ -190,6 +202,23 @@
           "Mon, Wed, Thu, Fri, Sat, Sun": "Mon, Wed, Thu, Fri, Sat, Sun",
           "Tue, Wed, Thu, Fri, Sat, Sun": "Tue, Wed, Thu, Fri, Sat, Sun"
         }
+      },
+      "tray_retraction_interval": {
+        "name": "Automatic tray retraction",
+        "state": {
+          "disabled": "Disabled",
+          "10": "10 minutes",
+          "15": "15 minutes",
+          "20": "20 minutes",
+          "25": "25 minutes",
+          "30": "30 minutes",
+          "35": "35 minutes",
+          "40": "40 minutes",
+          "45": "45 minutes",
+          "50": "50 minutes",
+          "55": "55 minutes",
+          "60": "60 minutes"
+        }
       }
     },
     "switch": {
@@ -308,6 +337,19 @@
         "expected": {
           "name": "Original meal",
           "description": "Original enabled, hour, minute, quantity and weekdays values, supplied by the card."
+        }
+      }
+    },
+    "read_feeder_details": {
+      "name": "Read selected feeding history",
+      "description": "Reads history for a selected protocol index and returns records. The index-to-date mapping is not verified.",
+      "fields": {
+        "entity_id": {
+          "name": "Feed button"
+        },
+        "selector": {
+          "name": "History index",
+          "description": "One-byte index from 0 to 255. This does not change the feeder."
         }
       }
     }

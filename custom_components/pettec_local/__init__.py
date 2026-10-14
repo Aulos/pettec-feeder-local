@@ -38,6 +38,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         entry.runtime_data = coordinator
         # Unsupported schedule reads must not disable working manual controls.
         await coordinator.schedules.async_refresh()
+        await coordinator.telemetry.async_refresh()
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
         if hass.state in (CoreState.not_running, CoreState.starting):
 

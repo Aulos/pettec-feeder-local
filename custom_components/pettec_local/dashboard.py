@@ -5,10 +5,11 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 import voluptuous as vol
-from homeassistant.auth.permissions.const import POLICY_CONTROL
+from homeassistant.auth.permissions.const import POLICY_CONTROL, POLICY_READ
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.components.lovelace.const import LOVELACE_DATA
 from homeassistant.config_entries import ConfigEntryState
+from homeassistant.core import SupportsResponse
 from homeassistant.exceptions import HomeAssistantError, Unauthorized
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_registry as er
@@ -67,13 +68,11 @@ async def async_setup_dashboard(hass):
         ]
     )
 
-    async def resolve(call, suffix):
+    async def resolve(call, suffix, permission=POLICY_CONTROL):
         entity_id = call.data["entity_id"]
         if call.context.user_id:
             user = await hass.auth.async_get_user(call.context.user_id)
-            if user is None or not user.permissions.check_entity(
-                entity_id, POLICY_CONTROL
-            ):
+            if user is None or not user.permissions.check_entity(entity_id, permission):
                 raise Unauthorized(entity_id=entity_id)
         entity = er.async_get(hass).async_get(entity_id)
         if not entity or entity.platform != DOMAIN:
@@ -111,6 +110,23 @@ async def async_setup_dashboard(hass):
             quantity=data["quantity"],
             weekdays=(current[slot - 1].weekdays & 128) | data["weekdays"],
         )
+
+    async def read_feeder_details(call):
+        root = await resolve(call, "feed", POLICY_READ)
+        details = await root.async_read_feeder_details(call.data["selector"])
+        return {
+            "selector": call.data["selector"],
+            "header": details.header,
+            "records": [
+                {
+                    "time": f"{record.hour:02}:{record.minute:02}",
+                    "quantity": record.quantity,
+                    "feeding_type": "automatic" if record.type_code == 0 else "manual",
+                    "type_code": record.type_code,
+                }
+                for record in details.records
+            ],
+        }
 
     def integer(value):
         if type(value) is not int:
@@ -151,6 +167,19 @@ async def async_setup_dashboard(hass):
                 vol.Required("minute"): whole(0, 59),
                 vol.Required("quantity"): whole(1, 200),
                 vol.Required("weekdays"): whole(0, 127),
+            }
+        ),
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        "read_feeder_details",
+        read_feeder_details,
+        supports_response=SupportsResponse.ONLY,
+        schema=vol.Schema(
+            {
+                vol.Required("entity_id"): cv.entity_id,
+                vol.Required("selector"): whole(0, 255),
             }
         ),
     )

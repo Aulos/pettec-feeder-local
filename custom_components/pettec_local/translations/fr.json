@@ -34,6 +34,12 @@
     "sensor": {
       "clock": {
         "name": "Horloge de l’appareil"
+      },
+      "remaining_food": {
+        "name": "Nourriture restante"
+      },
+      "remaining_battery": {
+        "name": "Niveau de batterie"
       }
     },
     "number": {
@@ -50,6 +56,12 @@
       },
       "sync_clock": {
         "name": "Synchroniser l’horloge de l’appareil"
+      },
+      "control_tray": {
+        "name": "Commander le plateau"
+      },
+      "reset_feeding_weight": {
+        "name": "Tarer la balance de nourriture"
       }
     },
     "time": {
@@ -190,6 +202,23 @@
           "Mon, Wed, Thu, Fri, Sat, Sun": "lun., mer., jeu., ven., sam., dim.",
           "Tue, Wed, Thu, Fri, Sat, Sun": "mar., mer., jeu., ven., sam., dim."
         }
+      },
+      "tray_retraction_interval": {
+        "name": "Rétraction automatique du plateau",
+        "state": {
+          "disabled": "Désactivée",
+          "10": "10 minutes",
+          "15": "15 minutes",
+          "20": "20 minutes",
+          "25": "25 minutes",
+          "30": "30 minutes",
+          "35": "35 minutes",
+          "40": "40 minutes",
+          "45": "45 minutes",
+          "50": "50 minutes",
+          "55": "55 minutes",
+          "60": "60 minutes"
+        }
       }
     },
     "switch": {
@@ -308,6 +337,19 @@
         "expected": {
           "name": "Repas d’origine",
           "description": "Valeurs d’origine activé, heure, minute, quantité et jours transmises par la carte."
+        }
+      }
+    },
+    "read_feeder_details": {
+      "name": "Lire l’historique de repas sélectionné",
+      "description": "Renvoie les entrées de l’index de protocole sélectionné. La correspondance entre l’index et la date n’est pas vérifiée.",
+      "fields": {
+        "entity_id": {
+          "name": "Bouton de distribution"
+        },
+        "selector": {
+          "name": "Index de l’historique",
+          "description": "Index sur un octet, de 0 à 255. Ne modifie pas le distributeur."
         }
       }
     }

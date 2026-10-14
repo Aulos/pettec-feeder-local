@@ -28,7 +28,7 @@ For the initial library release:
 3. Confirm that the **Publish protocol library** workflow passes and PyPI
    displays `pettec-xlink` version `0.1.0` with a wheel and source distribution.
 4. Merge the extraction and create the integration's `v0.6.0` GitHub release only
-   after the PyPI package can be installed. The integration manifest already pins `pettec-xlink==0.1.0`.
+   after the PyPI package can be installed. That extraction release pinned `pettec-xlink==0.1.0`.
 
 Do not create a GitHub Release object for the library tag. HACS uses this
 repository's GitHub releases for integration updates, so keep those releases

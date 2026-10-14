@@ -34,6 +34,12 @@
     "sensor": {
       "clock": {
         "name": "Geräteuhr"
+      },
+      "remaining_food": {
+        "name": "Verbleibendes Futter"
+      },
+      "remaining_battery": {
+        "name": "Batteriestand"
       }
     },
     "number": {
@@ -50,6 +56,12 @@
       },
       "sync_clock": {
         "name": "Geräteuhr synchronisieren"
+      },
+      "control_tray": {
+        "name": "Futterschale steuern"
+      },
+      "reset_feeding_weight": {
+        "name": "Futterwaage tarieren"
       }
     },
     "time": {
@@ -190,6 +202,23 @@
           "Mon, Wed, Thu, Fri, Sat, Sun": "Mo, Mi, Do, Fr, Sa, So",
           "Tue, Wed, Thu, Fri, Sat, Sun": "Di, Mi, Do, Fr, Sa, So"
         }
+      },
+      "tray_retraction_interval": {
+        "name": "Automatischer Schaleneinzug",
+        "state": {
+          "disabled": "Deaktiviert",
+          "10": "10 Minuten",
+          "15": "15 Minuten",
+          "20": "20 Minuten",
+          "25": "25 Minuten",
+          "30": "30 Minuten",
+          "35": "35 Minuten",
+          "40": "40 Minuten",
+          "45": "45 Minuten",
+          "50": "50 Minuten",
+          "55": "55 Minuten",
+          "60": "60 Minuten"
+        }
       }
     },
     "switch": {
@@ -308,6 +337,19 @@
         "expected": {
           "name": "Ursprüngliche Mahlzeit",
           "description": "Ursprüngliche Werte für Aktivierung, Stunde, Minute, Menge und Wochentage, die von der Karte übermittelt werden."
+        }
+      }
+    },
+    "read_feeder_details": {
+      "name": "Ausgewählten Fütterungsverlauf lesen",
+      "description": "Liest Einträge für den ausgewählten Protokollindex. Die Zuordnung des Index zu einem Datum ist nicht bestätigt.",
+      "fields": {
+        "entity_id": {
+          "name": "Fütterungsschaltfläche"
+        },
+        "selector": {
+          "name": "Verlaufsindex",
+          "description": "Ein-Byte-Index von 0 bis 255. Ändert den Futterautomaten nicht."
         }
       }
     }

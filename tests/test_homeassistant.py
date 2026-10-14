@@ -83,6 +83,13 @@ def client():
         get_clock=AsyncMock(return_value=CLOCK),
         set_clock=AsyncMock(return_value=CLOCK),
         dispense=AsyncMock(),
+        get_remaining_food=AsyncMock(return_value=1500),
+        get_remaining_battery=AsyncMock(return_value=85),
+        get_tray_retraction_interval=AsyncMock(return_value=15),
+        set_tray_retraction_interval=AsyncMock(return_value=20),
+        control_tray=AsyncMock(return_value="extending"),
+        reset_feeding_weight=AsyncMock(return_value=0),
+        get_feeder_details=AsyncMock(),
         get_schedules=AsyncMock(return_value=SCHEDULES),
         update_schedule=AsyncMock(),
     )
@@ -271,8 +278,8 @@ async def test_quantity_is_saved_without_feeding(hass, entry, client):
     client.dispense.assert_not_called()
     sensors = list(hass.data["sensor"].entities)
     buttons = list(hass.data["button"].entities)
-    assert len(sensors) == 1
-    assert len(buttons) == 2
+    assert len(sensors) == 3
+    assert len(buttons) == 4
     assert hass.states.get(sensors[0].entity_id).state == CLOCK.isoformat()
     await hass.services.async_call(
         "button", "press", {"entity_id": buttons[0].entity_id}, blocking=True
@@ -593,7 +600,9 @@ async def test_weekday_control_preserves_reserved_bit_and_allows_all_combination
     assert set(DAY_OPTIONS.values()) == set(range(128))
     await load_feeder(hass, entry, client)
     control = next(
-        entity for entity in hass.data["select"].entities if entity.slot_number == 1
+        entity
+        for entity in hass.data["select"].entities
+        if getattr(entity, "slot_number", None) == 1
     )
     assert control.current_option == "Every day"
     await control.async_select_option("Mon, Wed, Fri")
@@ -724,7 +733,7 @@ async def test_editor_updates_device_page_schedule_controls(hass, entry, client)
     controls = {
         entity.translation_key: entity
         for entity in schedule_entities(hass)
-        if entity.slot_number == 1
+        if getattr(entity, "slot_number", None) == 1
     }
     assert controls["schedule_time"].native_value == time(9, 15)
     assert controls["schedule_amount"].native_value == 30
@@ -823,7 +832,7 @@ async def test_card_resource_is_served_and_registration_is_idempotent(
     await load_feeder(hass, entry, client)
     await async_setup_dashboard(hass)
     async with TestClient(TestServer(hass.http.app)) as http:
-        response = await http.get("/pettec_local/pettec-cards.js?v=0.6.1")
+        response = await http.get("/pettec_local/pettec-cards.js?v=0.7.0")
         assert response.status == 200
         assert "pettec-schedule-card" in await response.text()
 
@@ -946,3 +955,176 @@ async def test_polish_entity_and_selector_translations_load(hass, entry, client)
     assert (
         selectors[f"component.{DOMAIN}.selector.weekdays.options.mon"] == "Poniedziałek"
     )
+
+
+async def test_new_entities_poll_without_writes_and_show_telemetry(hass, entry, client):
+    await load_feeder(hass, entry, client)
+    sensors = {e.translation_key: e for e in hass.data["sensor"].entities}
+    assert hass.states.get(sensors["remaining_food"].entity_id).state == "1500"
+    assert hass.states.get(sensors["remaining_battery"].entity_id).state == "85"
+    client.control_tray.assert_not_awaited()
+    client.reset_feeding_weight.assert_not_awaited()
+    client.set_tray_retraction_interval.assert_not_awaited()
+    client.get_feeder_details.assert_not_awaited()
+    client.get_remaining_battery.return_value = None
+    await entry.runtime_data.telemetry.async_refresh()
+    state = hass.states.get(sensors["remaining_battery"].entity_id)
+    assert state.state == "unknown"
+    assert state.attributes["charging"] is True
+
+
+async def test_optional_read_failures_do_not_disable_feeding(hass, entry, client):
+    client.get_remaining_food.side_effect = XlinkError("unsupported")
+    client.get_tray_retraction_interval.side_effect = TimeoutError()
+    await load_feeder(hass, entry, client)
+    sensors = {e.translation_key: e for e in hass.data["sensor"].entities}
+    assert not sensors["remaining_food"].available
+    assert sensors["remaining_battery"].available
+    assert sensors["clock"].available
+    await entry.runtime_data.async_dispense()
+    client.dispense.assert_awaited_once_with(10)
+
+
+async def test_device_page_tray_interval_and_tare_controls(hass, entry, client):
+    await load_feeder(hass, entry, client)
+    control = next(
+        e
+        for e in hass.data["select"].entities
+        if e.translation_key == "tray_retraction_interval"
+    )
+    assert control.current_option == "15"
+    assert control.entity_category == EntityCategory.CONFIG
+    assert control.options == ["disabled", *map(str, range(10, 61, 5))]
+
+    async def set_interval(value):
+        client.get_tray_retraction_interval.return_value = value
+        return value
+
+    client.set_tray_retraction_interval.side_effect = set_interval
+    await hass.services.async_call(
+        "select",
+        "select_option",
+        {"entity_id": control.entity_id, "option": "20"},
+        blocking=True,
+    )
+    assert control.current_option == "20"
+    await control.async_select_option("disabled")
+    assert control.current_option == "disabled"
+    assert client.set_tray_retraction_interval.await_args_list[0].args == (20,)
+    assert client.set_tray_retraction_interval.await_args_list[1].args == (None,)
+    with pytest.raises(HomeAssistantError):
+        await control.async_select_option("255")
+    assert client.set_tray_retraction_interval.await_count == 2
+    buttons = {e.translation_key: e for e in hass.data["button"].entities}
+    await hass.services.async_call(
+        "button",
+        "press",
+        {"entity_id": buttons["control_tray"].entity_id},
+        blocking=True,
+    )
+    client.control_tray.assert_awaited_once()
+    await hass.services.async_call(
+        "button",
+        "press",
+        {"entity_id": buttons["reset_feeding_weight"].entity_id},
+        blocking=True,
+    )
+    client.reset_feeding_weight.assert_awaited_once()
+    assert entry.runtime_data.telemetry.data["food"] == 0
+    client.dispense.assert_not_awaited()
+
+
+@pytest.mark.parametrize(
+    "method", ["control_tray", "reset_feeding_weight", "set_tray_retraction_interval"]
+)
+async def test_new_write_failures_never_retry(hass, entry, client, method):
+    await load_feeder(hass, entry, client)
+    getattr(client, method).side_effect = TimeoutError()
+    if method == "set_tray_retraction_interval":
+        operation = entry.runtime_data.telemetry.async_set_interval(20)
+    elif method == "control_tray":
+        operation = entry.runtime_data.async_control_tray()
+    else:
+        operation = entry.runtime_data.async_reset_feeding_weight()
+    with pytest.raises(HomeAssistantError):
+        await operation
+    assert getattr(client, method).await_count == 1
+    assert entry.runtime_data.last_update_success
+    client.dispense.assert_not_awaited()
+
+
+async def test_details_action_returns_structured_history_with_read_permission(
+    hass, entry, client
+):
+    from unittest.mock import Mock
+
+    from homeassistant.core import Context
+    from homeassistant.exceptions import Unauthorized
+    from pettec_xlink import FeedingDetails, FeedingRecord
+
+    await load_feeder(hass, entry, client)
+    feed = entity_registry.async_get(hass).async_get_entity_id(
+        "button", DOMAIN, f"{entry.entry_id}_feed"
+    )
+    client.get_feeder_details.return_value = FeedingDetails(
+        3, (FeedingRecord(8, 30, 25, 0),)
+    )
+    permission = Mock(side_effect=lambda entity, policy: policy == "read")
+    user = SimpleNamespace(permissions=SimpleNamespace(check_entity=permission))
+    with patch.object(hass.auth, "async_get_user", return_value=user):
+        result = await hass.services.async_call(
+            DOMAIN,
+            "read_feeder_details",
+            {"entity_id": feed, "selector": 2},
+            blocking=True,
+            return_response=True,
+            context=Context(user_id="reader"),
+        )
+    assert result == {
+        "selector": 2,
+        "header": 3,
+        "records": [
+            {
+                "time": "08:30",
+                "quantity": 25,
+                "feeding_type": "automatic",
+                "type_code": 0,
+            }
+        ],
+    }
+    permission.assert_called_once_with(feed, "read")
+    client.get_feeder_details.assert_awaited_once_with(2)
+    user.permissions.check_entity = Mock(return_value=False)
+    with patch.object(hass.auth, "async_get_user", return_value=user):
+        with pytest.raises(Unauthorized):
+            await hass.services.async_call(
+                DOMAIN,
+                "read_feeder_details",
+                {"entity_id": feed, "selector": 2},
+                blocking=True,
+                return_response=True,
+                context=Context(user_id="blocked"),
+            )
+    assert client.get_feeder_details.await_count == 1
+    client.dispense.assert_not_awaited()
+
+
+@pytest.mark.parametrize("selector", [-1, 256, True, 1.5, "1"])
+async def test_details_action_rejects_invalid_selector_before_sending(
+    hass, entry, client, selector
+):
+    import voluptuous as vol
+
+    await load_feeder(hass, entry, client)
+    feed = entity_registry.async_get(hass).async_get_entity_id(
+        "button", DOMAIN, f"{entry.entry_id}_feed"
+    )
+    with pytest.raises(vol.Invalid):
+        await hass.services.async_call(
+            DOMAIN,
+            "read_feeder_details",
+            {"entity_id": feed, "selector": selector},
+            blocking=True,
+            return_response=True,
+        )
+    client.get_feeder_details.assert_not_awaited()

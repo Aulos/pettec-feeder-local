@@ -135,3 +135,63 @@ def feed_payload(grams: int) -> bytes:
     if type(grams) is not int or not 1 <= grams <= MAX_FEED_GRAMS:
         raise ValueError(f"Feeding amount must be 1–{MAX_FEED_GRAMS} whole grams")
     return struct.pack(">H", grams)
+
+
+READ_REMAINING_FOOD = 0x10
+READ_REMAINING_BATTERY = 0x11
+CONTROL_TRAY = 0x12
+READ_FEEDER_DETAILS = 0x23
+TRAY_RETRACTION = 0x24
+RESET_FEEDING_WEIGHT = 0x26
+TRAY_INTERVALS = tuple(range(10, 61, 5))
+
+
+@dataclass(frozen=True)
+class FeedingRecord:
+    """One APK history record, with its original feeding-type byte."""
+
+    hour: int
+    minute: int
+    quantity: int
+    type_code: int
+
+
+@dataclass(frozen=True)
+class FeedingDetails:
+    """History reply; the APK ignores the leading byte, so retain it as raw data."""
+
+    header: int
+    records: tuple[FeedingRecord, ...]
+
+
+def decode_remaining_food(payload: bytes) -> int:
+    """The app reads a signed big-endian short and displays grams."""
+    if len(payload) != 2:
+        raise ProtocolError("Expected a two-byte food weight")
+    return struct.unpack(">h", payload)[0]
+
+
+def decode_remaining_battery(payload: bytes) -> int | None:
+    """The app labels codes 101..127 as charging, not a percentage."""
+    if len(payload) != 1 or payload[0] > 127:
+        raise ProtocolError("Unknown battery response")
+    return payload[0] if payload[0] <= 100 else None
+
+
+def decode_tray_interval(payload: bytes) -> int | None:
+    """100 disables retraction; FF is the read query, never an interval."""
+    if len(payload) != 1 or payload[0] not in (*TRAY_INTERVALS, 100):
+        raise ProtocolError("Unknown tray retraction interval")
+    return None if payload[0] == 100 else payload[0]
+
+
+def decode_feeder_details(payload: bytes) -> FeedingDetails:
+    if not payload or (len(payload) - 1) % 5:
+        raise ProtocolError("Expected a header followed by five-byte feeding records")
+    records = []
+    for offset in range(1, len(payload), 5):
+        hour, minute, quantity, kind = struct.unpack_from(">BBhB", payload, offset)
+        if hour > 23 or minute > 59 or quantity < 0:
+            raise ProtocolError("Invalid feeding history record")
+        records.append(FeedingRecord(hour, minute, quantity, kind))
+    return FeedingDetails(payload[0], tuple(records))

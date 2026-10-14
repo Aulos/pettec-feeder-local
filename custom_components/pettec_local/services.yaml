@@ -85,3 +85,25 @@ save_schedule:
       required: true
       selector:
         object:
+read_feeder_details:
+  name: Read selected feeding history
+  description: Reads history for the selected protocol index and returns records. The index-to-date mapping is not verified.
+  fields:
+    entity_id:
+      name: Feed button
+      required: true
+      selector:
+        entity:
+          filter:
+            - integration: pettec_local
+              domain: button
+    selector:
+      name: History index
+      description: One-byte selector from 0 to 255. This does not change the feeder.
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 255
+          step: 1
+          mode: box

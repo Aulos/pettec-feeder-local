@@ -165,6 +165,37 @@ provisioning helper on a trusted local network; keep Wi-Fi credentials and the
 access key private. Home Assistant stores the configured key in its usual
 configuration storage.
 
+## Food level, battery, tray and feeding history
+
+The device page shows **Remaining food** in grams and **Remaining battery** in
+percent. The battery becomes unknown with a `charging: true` attribute when the
+feeder reports the app's charging code instead of a percentage. Optional reads
+that fail only make their corresponding new entities unavailable.
+
+**Control food tray** sends the original app's tray-button command once. The
+response describes extending or retracting, but the integration does not infer
+a settled tray position. Inspect the tray before repeating a failed request.
+
+Under **Configuration**, **Automatic tray retraction** offers Disabled or 10–60
+minutes in five-minute steps. Startup only reads this preference. Changes are
+written once and read back; a lost acknowledgement does not trigger a retry.
+
+**Tare food weight** resets the hopper scale's tare offset. Follow the feeder's
+physical tare procedure before pressing it. It does not perform dispensing
+calibration. The integration sends the command once and refreshes the food
+reading; do not repeat an uncertain reset without inspecting that reading.
+
+Use **Developer tools → Actions → PetTec: Read selected feeding history** to read
+`0x23` details. Choose the feeder's Feed button and a whole-number history index
+from 0 to 255. The action returns records with `time`, `quantity` in grams,
+`feeding_type`, and the original `type_code`. It also returns the reply's raw
+`header`. The APK ignores that byte; its meaning and the index-to-date mapping
+remain unverified. This action does not change the feeder.
+
+These formats come from the Android APK and simulated replies. Support for the
+new commands on each feeder firmware still needs hardware verification. See
+[the command evidence](docs/extra-commands.md).
+
 ## Development
 
 ```sh
@@ -234,7 +265,7 @@ configuration manually (the integration does not edit YAML):
 lovelace:
   resource_mode: yaml
   resources:
-    - url: /pettec_local/pettec-cards.js?v=0.6.1
+    - url: /pettec_local/pettec-cards.js?v=0.7.0
       type: module
 ```
 

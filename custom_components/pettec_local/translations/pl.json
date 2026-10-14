@@ -34,6 +34,12 @@
     "sensor": {
       "clock": {
         "name": "Zegar urządzenia"
+      },
+      "remaining_food": {
+        "name": "Pozostała karma"
+      },
+      "remaining_battery": {
+        "name": "Poziom baterii"
       }
     },
     "number": {
@@ -50,6 +56,12 @@
       },
       "sync_clock": {
         "name": "Synchronizuj zegar urządzenia"
+      },
+      "control_tray": {
+        "name": "Steruj tacką na karmę"
+      },
+      "reset_feeding_weight": {
+        "name": "Taruj wagę karmy"
       }
     },
     "time": {
@@ -190,6 +202,23 @@
           "Mon, Wed, Thu, Fri, Sat, Sun": "pon., śr., czw., pt., sob., niedz.",
           "Tue, Wed, Thu, Fri, Sat, Sun": "wt., śr., czw., pt., sob., niedz."
         }
+      },
+      "tray_retraction_interval": {
+        "name": "Automatyczne chowanie tacki",
+        "state": {
+          "disabled": "Wyłączone",
+          "10": "10 min",
+          "15": "15 min",
+          "20": "20 min",
+          "25": "25 min",
+          "30": "30 min",
+          "35": "35 min",
+          "40": "40 min",
+          "45": "45 min",
+          "50": "50 min",
+          "55": "55 min",
+          "60": "60 min"
+        }
       }
     },
     "switch": {
@@ -308,6 +337,19 @@
         "expected": {
           "name": "Poprzednie ustawienia posiłku",
           "description": "Poprzednie wartości enabled, hour, minute, quantity i weekdays przekazane przez kartę."
+        }
+      }
+    },
+    "read_feeder_details": {
+      "name": "Odczytaj wybraną historię karmienia",
+      "description": "Odczytuje historię dla wybranego indeksu protokołu i zwraca wpisy. Powiązanie indeksu z datą nie jest potwierdzone.",
+      "fields": {
+        "entity_id": {
+          "name": "Przycisk karmienia"
+        },
+        "selector": {
+          "name": "Indeks historii",
+          "description": "Jednobajtowy indeks od 0 do 255. Nie zmienia ustawień karmnika."
         }
       }
     }

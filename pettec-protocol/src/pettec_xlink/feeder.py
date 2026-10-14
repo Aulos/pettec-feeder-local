@@ -5,18 +5,30 @@ from datetime import datetime, timedelta
 from time import monotonic
 
 from .protocol import (
+    CONTROL_TRAY,
     FEED,
     READ_CLOCK,
+    READ_FEEDER_DETAILS,
+    READ_REMAINING_BATTERY,
+    READ_REMAINING_FOOD,
     READ_SCHEDULES,
+    RESET_FEEDING_WEIGHT,
     SCHEDULE_COUNT,
     SET_CLOCK,
+    TRAY_INTERVALS,
+    TRAY_RETRACTION,
     WRITE_SCHEDULES,
+    FeedingDetails,
     ProtocolError,
     ScheduleSlot,
     clock_payload,
     decode_clock,
+    decode_feeder_details,
     decode_frame,
+    decode_remaining_battery,
+    decode_remaining_food,
     decode_schedules,
+    decode_tray_interval,
     encode_frame,
     encode_schedules,
     feed_payload,
@@ -34,6 +46,7 @@ class FeederClient:
     def __init__(self, host: str, access_key: int) -> None:
         self._transport = XlinkClient(host, access_key)
         self._schedule_lock = asyncio.Lock()
+        self._interval_lock = asyncio.Lock()
 
     @property
     def mac(self) -> str:
@@ -133,3 +146,69 @@ class FeederClient:
                     "Schedule readback differs; inspect schedules before retrying"
                 )
             return actual
+
+    async def get_remaining_food(self) -> int:
+        payload = await self._request(READ_REMAINING_FOOD)
+        try:
+            return decode_remaining_food(payload)
+        except ProtocolError as err:
+            raise XlinkError(str(err)) from err
+
+    async def get_remaining_battery(self) -> int | None:
+        payload = await self._request(READ_REMAINING_BATTERY)
+        try:
+            return decode_remaining_battery(payload)
+        except ProtocolError as err:
+            raise XlinkError(str(err)) from err
+
+    async def control_tray(self) -> str:
+        """Send the app's tray-button command once; report movement, not position."""
+        payload = await self._request(CONTROL_TRAY, b"\x02")
+        if payload not in (b"\x01", b"\x02"):
+            raise XlinkError("Tray acknowledgement failed; outcome is uncertain")
+        return "retracting" if payload == b"\x01" else "extending"
+
+    async def get_feeder_details(self, selector: int) -> FeedingDetails:
+        if type(selector) is not int or not 0 <= selector <= 255:
+            raise ValueError("History selector must be a whole number from 0 to 255")
+        payload = await self._request(READ_FEEDER_DETAILS, bytes([selector]))
+        try:
+            return decode_feeder_details(payload)
+        except ProtocolError as err:
+            raise XlinkError(str(err)) from err
+
+    async def get_tray_retraction_interval(self) -> int | None:
+        """The APK sends FF to query this setting without changing it."""
+        payload = await self._request(TRAY_RETRACTION, b"\xff")
+        try:
+            return decode_tray_interval(payload)
+        except ProtocolError as err:
+            raise XlinkError(str(err)) from err
+
+    async def set_tray_retraction_interval(self, minutes: int | None) -> int | None:
+        if minutes is not None and (
+            type(minutes) is not int or minutes not in TRAY_INTERVALS
+        ):
+            raise ValueError("Choose 10–60 minutes in five-minute steps or None")
+        value = 100 if minutes is None else minutes
+        async with self._interval_lock:
+            status = await self._request(TRAY_RETRACTION, bytes([value]))
+            if status != b"\x00":
+                raise XlinkError(
+                    "Tray interval acknowledgement failed; outcome is uncertain"
+                )
+            actual = await self.get_tray_retraction_interval()
+            if actual != minutes:
+                raise XlinkError(
+                    "Tray interval readback differs; inspect before retrying"
+                )
+            return actual
+
+    async def reset_feeding_weight(self) -> int:
+        """Tare once, then read the weight. This is not dispensing calibration."""
+        status = await self._request(RESET_FEEDING_WEIGHT, b"\x00\x00")
+        if status != b"\x00":
+            raise XlinkError(
+                "Weight reset acknowledgement failed; outcome is uncertain"
+            )
+        return await self.get_remaining_food()

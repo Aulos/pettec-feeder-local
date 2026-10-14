@@ -2,7 +2,8 @@
 
 An async Python client for local control of PetTec PF 05WD feeders over Xlink UDP.
 It supports reading and setting the device clock, dispensing a selected amount,
-and reading and updating the five stored feeding schedules.
+reading and updating the five stored feeding schedules, food and battery
+readings, tray control, automatic retraction, tare and selected feeding history.
 
 The client uses Python 3.11 or newer and the standard library. It does not require
 Home Assistant or a PetTec cloud account. Only the PF 05WD product ID
@@ -79,3 +80,28 @@ Library releases use tags such as `protocol-v0.1.0`. GitHub Actions builds a whe
 and a source distribution, runs the library tests, and publishes to PyPI through
 Trusted Publishing. These tags have no GitHub Release object, so HACS continues
 to use the integration's `v*` GitHub releases.
+
+
+Additional local operations:
+
+| Method | Behavior |
+| --- | --- |
+| `get_remaining_food()` | Signed big-endian food weight in grams |
+| `get_remaining_battery()` | Percentage, or `None` for the APK's charging codes |
+| `control_tray()` | App tray-button command; returns `extending` or `retracting` |
+| `get_feeder_details(index)` | One-byte index, raw header and five-byte history records |
+| `get_tray_retraction_interval()` | Minutes or `None` when disabled; read query only |
+| `set_tray_retraction_interval(minutes)` | 10–60 in steps of 5, or `None`; write and verify |
+| `reset_feeding_weight()` | Tare once, then return the food-weight readback |
+
+Tray control uses the original button's payload `02`. The exact toggle semantics
+and settled position are not inferred from the acknowledgement. Retraction query
+uses `FF`; disabled is encoded as `100`. Concurrent interval edits serialize the
+write and readback. All writes are single-shot and can have an uncertain outcome
+if the acknowledgement or verification fails.
+
+The history index-to-date mapping and leading reply byte are not verified. Each
+record reports hour, minute, grams and the raw feeding-type byte. The app calls
+zero automatic feeding and nonzero manual feeding. Unknown layouts are rejected.
+The new formats have APK and simulated-test evidence; hardware support has not
+been verified. See the repository's `docs/extra-commands.md` for the source trail.

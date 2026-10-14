@@ -36,6 +36,7 @@ class FeederCoordinator(DataUpdateCoordinator[datetime]):
         self.client = client
         self.entry = entry
         self.schedules = ScheduleCoordinator(hass, entry, client)
+        self.telemetry = TelemetryCoordinator(hass, entry, client)
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -88,6 +89,40 @@ class FeederCoordinator(DataUpdateCoordinator[datetime]):
             ) from err
         self.async_set_updated_data(actual)
 
+    async def async_control_tray(self):
+        try:
+            await self.client.connect()
+            await self.client.control_tray()
+        except (XlinkError, OSError, TimeoutError, ValueError) as err:
+            await self.client.close()
+            raise HomeAssistantError(
+                "Tray control failed. Inspect the tray before trying again; "
+                "it may already be moving."
+            ) from err
+
+    async def async_reset_feeding_weight(self):
+        try:
+            await self.client.connect()
+            actual = await self.client.reset_feeding_weight()
+        except (XlinkError, OSError, TimeoutError, ValueError) as err:
+            await self.client.close()
+            await self.telemetry.async_refresh()
+            raise HomeAssistantError(
+                "Weight reset could not be verified. Check the remaining food "
+                "reading before trying again; the reset may already have happened."
+            ) from err
+        self.telemetry.async_set_updated_data(
+            {**(self.telemetry.data or {}), "food": actual}
+        )
+
+    async def async_read_feeder_details(self, selector):
+        try:
+            await self.client.connect()
+            return await self.client.get_feeder_details(selector)
+        except (XlinkError, OSError, TimeoutError, ValueError) as err:
+            await self.client.close()
+            raise HomeAssistantError("Unable to read selected feeding history") from err
+
 
 class ScheduleCoordinator(DataUpdateCoordinator[tuple[ScheduleSlot, ...]]):
     """Refresh stored schedules independently of clock and feeding availability."""
@@ -139,3 +174,45 @@ class ScheduleCoordinator(DataUpdateCoordinator[tuple[ScheduleSlot, ...]]):
                 "Unable to verify schedule change. Check the refreshed schedule "
                 "before trying again; the change may already have been applied."
             ) from err
+
+
+class TelemetryCoordinator(DataUpdateCoordinator[dict]):
+    """Optional reads must not disable the working clock or feeding controls."""
+
+    def __init__(self, hass, entry, client):
+        super().__init__(
+            hass,
+            _LOGGER,
+            config_entry=entry,
+            name="PetTec telemetry",
+            update_interval=timedelta(minutes=1),
+        )
+        self.client = client
+        self.entry = entry
+
+    async def _async_update_data(self):
+        data = {}
+        for key, method in (
+            ("food", self.client.get_remaining_food),
+            ("battery", self.client.get_remaining_battery),
+            ("tray_interval", self.client.get_tray_retraction_interval),
+        ):
+            try:
+                await self.client.connect()
+                data[key] = await method()
+            except XlinkError, OSError, TimeoutError, ValueError:
+                _LOGGER.debug("Unable to read optional PetTec %s", key)
+        return data
+
+    async def async_set_interval(self, minutes):
+        try:
+            await self.client.connect()
+            actual = await self.client.set_tray_retraction_interval(minutes)
+        except (XlinkError, OSError, TimeoutError, ValueError) as err:
+            await self.client.close()
+            await self.async_refresh()
+            raise HomeAssistantError(
+                "Unable to verify tray interval. Check its refreshed value before "
+                "trying again; the change may already have been applied."
+            ) from err
+        self.async_set_updated_data({**(self.data or {}), "tray_interval": actual})
