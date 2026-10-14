@@ -200,9 +200,18 @@ new commands on each feeder firmware still needs hardware verification. See
 
 ```sh
 python3.14 -m venv .venv
-.venv/bin/python -m pip install -e ./pettec-protocol '.[homeassistant-test]' ruff
-.venv/bin/python -m pytest -q
+.venv/bin/python -m pip install '.[homeassistant-test]' ruff
+.venv/bin/python -m pytest -q tests
 .venv/bin/ruff check .
+```
+
+The integration uses its pinned published protocol release. Develop and test
+the library in a separate environment so its version can advance independently:
+
+```sh
+python3 -m venv .venv-protocol
+.venv-protocol/bin/python -m pip install -e './pettec-protocol[test]'
+.venv-protocol/bin/python -m pytest -q -c pettec-protocol/pyproject.toml pettec-protocol/tests
 ```
 
 Tests make no connections to PetTec cloud services or a physical feeder. UDP

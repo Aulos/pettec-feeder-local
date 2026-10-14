@@ -17,7 +17,8 @@ The protocol was recovered from PetTec Android 1.1.4 and tested with a PF 05WD.
 
 Install the published package with `python -m pip install pettec-xlink`.
 For development, run `python -m pip install -e './pettec-protocol[test]'` from
-this repository's root.
+this repository's root in a separate environment from the integration, which
+pins its supported published library version.
 
 ```python
 import asyncio
