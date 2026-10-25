@@ -4,9 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pettec-local"
-version = "0.7.0"
+version = "0.7.1"
 requires-python = ">=3.14"
-dependencies = ["pettec-xlink==0.2.0"]
+dependencies = ["pettec-xlink==0.3.1"]
 
 [project.optional-dependencies]
 test = ["pytest>=8", "pytest-asyncio>=0.25"]

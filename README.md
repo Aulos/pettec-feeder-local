@@ -274,7 +274,7 @@ configuration manually (the integration does not edit YAML):
 lovelace:
   resource_mode: yaml
   resources:
-    - url: /pettec_local/pettec-cards.js?v=0.7.0
+    - url: /pettec_local/pettec-cards.js?v=0.7.1
       type: module
 ```
 

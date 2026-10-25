@@ -1,7 +1,7 @@
 # pettec-xlink
 
-Version 0.3.0 adds the remaining APK commands as library-only APIs. Home
-Assistant continues to use its existing 0.2.0 dependency. See the
+Version 0.3.0 adds the remaining APK commands as library-only APIs. The Home
+Assistant integration does not expose those additional commands. See the
 [command reference](https://github.com/Aulos/pettec-feeder-local/blob/main/pettec-protocol/COMMANDS.md)
 for packet layouts and the limits of the recovered maintenance operations.
 
