@@ -132,6 +132,15 @@ saving time automatically.
 `CmdManager.setRTCObject`, at `classes.dex` code_item `0x2da01c`, constructs
 inner command `04`. `RTCObject.toBytes`, at `0x2dbae8`, writes seven bytes:
 year minus 2000, month, day, hour, minute, second and weekday.
+
+A read-only hardware capture on Sunday 2026-10-25 returned
+`1a 0a 19 12 32 1b 07`: 2026-10-25 18:50:27 with weekday `07`.
+The initial decoder rejected this valid reply because it allowed only weekdays
+0–6, causing Home Assistant setup to retry with “Unable to read the feeder
+clock”. The decoder now accepts 0–7, including both Sunday representations,
+while retaining date, time, frame-length and checksum validation. The original
+failure was reproduced through `FeederClient.get_clock`, and the same read
+succeeded against the feeder after the fix. No clock writes were sent.
 `RTCObject(long)` uses the local Java Calendar and maps Calendar's Sunday=1
 through Saturday=7 to wire values Sunday=0 through Saturday=6. This convention
 is different from schedule weekday bit positions.

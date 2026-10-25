@@ -55,7 +55,7 @@ def test_clock_values_and_no_timezone_assumption():
         bytes([26, 2, 30, 8, 0, 0, 1]),
         bytes([26, 13, 1, 8, 0, 0, 1]),
         bytes([26, 1, 1, 24, 0, 0, 1]),
-        bytes([26, 1, 1, 0, 0, 0, 7]),
+        bytes([26, 1, 1, 0, 0, 0, 8]),
         bytes([100, 1, 1, 0, 0, 0, 1]),
         b"\x00",
     ],

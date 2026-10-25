@@ -22,6 +22,23 @@ def test_clock_payload_matches_apk_layout():
     assert clock_payload(datetime(2026, 10, 19))[-1] == 1  # Monday
 
 
+@pytest.mark.parametrize("weekday", [0, 7])
+async def test_sunday_clock_read_from_real_feeder(monkeypatch, weekday):
+    # Captured read-only reply on 2026-10-25: Sunday is reported as 07.
+    payload = bytes.fromhex("1a 0a 19 12 32 1b") + bytes([weekday])
+    client, transport = client_with_transport(monkeypatch, encode_frame(0x83, payload))
+    assert await client.get_clock() == datetime(2026, 10, 25, 18, 50, 27)
+    transport.send_pipe.assert_awaited_once_with(bytes.fromhex("57 ab ff ff 03 00 03"))
+
+
+@pytest.mark.parametrize("weekday", [8, 255])
+async def test_clock_read_rejects_invalid_weekday(monkeypatch, weekday):
+    payload = bytes.fromhex("1a 0a 19 12 32 1b") + bytes([weekday])
+    client, _ = client_with_transport(monkeypatch, encode_frame(0x83, payload))
+    with pytest.raises(XlinkError, match="Invalid device clock payload"):
+        await client.get_clock()
+
+
 @pytest.mark.parametrize(
     "value",
     [

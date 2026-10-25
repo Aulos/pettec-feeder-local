@@ -126,7 +126,8 @@ def decode_frame(data: bytes) -> Frame:
 
 def decode_clock(payload: bytes) -> datetime:
     """Decode the device's local wall clock, without inventing a timezone."""
-    if len(payload) != 7 or payload[0] > 99 or payload[6] > 6:
+    # Firmware can report Sunday as 7; the app's writer uses 0.
+    if len(payload) != 7 or payload[0] > 99 or payload[6] > 7:
         raise ProtocolError("Invalid device clock payload")
     try:
         return datetime(2000 + payload[0], *payload[1:6])
