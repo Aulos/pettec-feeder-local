@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-from dataclasses import replace
 from datetime import datetime, timedelta
 
 from homeassistant.config_entries import ConfigEntry
@@ -11,13 +10,22 @@ from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
-from pettec_xlink.feeder import FeederClient
-from pettec_xlink.protocol import ScheduleSlot
+from pettec_xlink.feeder import FeederClient, ScheduleChangedError
+from pettec_xlink.protocol import SCHEDULE_COUNT, ScheduleSlot
 from pettec_xlink.xlink import AuthenticationError, XlinkError
 
 from .const import CONF_QUANTITY, DEFAULT_QUANTITY, DOMAIN
+from .schedule_rules import ScheduleChanges, apply_changes, matches_expected
 
 _LOGGER = logging.getLogger(__name__)
+
+
+class ScheduleConflict(HomeAssistantError):
+    """The stored schedule changed while an editor was open."""
+
+
+class ScheduleInvalid(HomeAssistantError):
+    """The requested schedule fields cannot be stored."""
 
 
 class FeederCoordinator(DataUpdateCoordinator[datetime]):
@@ -146,26 +154,51 @@ class ScheduleCoordinator(DataUpdateCoordinator[tuple[ScheduleSlot, ...]]):
             except (XlinkError, OSError, TimeoutError, ValueError) as err:
                 raise UpdateFailed("Unable to read stored feeding schedules") from err
 
+    async def async_read_slots(self) -> tuple[ScheduleSlot, ...]:
+        """Read all five slots under the edit lock and refresh the cache."""
+        async with self._edit_lock:
+            try:
+                await self.client.connect()
+                slots = await self.client.get_schedules()
+            except (XlinkError, OSError, TimeoutError, ValueError) as err:
+                await self.client.close()
+                raise HomeAssistantError(
+                    "Unable to read stored feeding schedules"
+                ) from err
+            self.async_set_updated_data(slots)
+            return slots
+
     async def async_change_slot(
-        self, slot: int, *, expected_slot: ScheduleSlot | None = None, **changes
+        self,
+        slot: int,
+        changes: ScheduleChanges,
+        *,
+        expected_slot: ScheduleSlot | None = None,
     ) -> None:
-        """Apply one field to a freshly verified slot, preserving the other four."""
+        """Apply one field set to a freshly verified slot, preserving the rest."""
+        if type(slot) is not int or not 1 <= slot <= SCHEDULE_COUNT:
+            raise ScheduleInvalid("Schedule slot must be from 1 to 5")
         try:
             async with self._edit_lock:
                 if self.data is None or not self.last_update_success:
-                    raise HomeAssistantError("Stored schedules are unavailable")
+                    raise ScheduleInvalid("Stored schedules are unavailable")
                 expected = self.data[slot - 1]
-                if expected_slot is not None and expected_slot != expected:
-                    raise HomeAssistantError(
+                if not matches_expected(expected, expected_slot):
+                    raise ScheduleConflict(
                         "This meal changed elsewhere. Reload it before saving."
                     )
-                updated = replace(expected, **changes)
+                updated = apply_changes(expected, changes)
                 actual = await self.client.update_schedule(
                     slot, updated, expected=expected
                 )
                 self.async_set_updated_data(actual)
+        except ScheduleChangedError as err:
+            await self.async_refresh()
+            raise ScheduleConflict(
+                "This meal changed elsewhere. Reload it before saving."
+            ) from err
         except ValueError as err:
-            raise HomeAssistantError(str(err)) from err
+            raise ScheduleInvalid(str(err)) from err
         except (XlinkError, OSError, TimeoutError) as err:
             await self.client.close()
             # Only read after an uncertain write; never repeat the write itself.

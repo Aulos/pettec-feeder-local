@@ -746,7 +746,7 @@ async def test_failed_read_does_not_allow_schedule_writes(hass, entry, client):
     client.get_schedules.side_effect = TimeoutError()
     await entry.runtime_data.schedules.async_refresh()
     with pytest.raises(HomeAssistantError, match="unavailable"):
-        await entry.runtime_data.schedules.async_change_slot(1, quantity=33)
+        await entry.runtime_data.schedules.async_change_slot(1, {"quantity": 33})
     client.update_schedule.assert_not_awaited()
 
 
@@ -757,7 +757,7 @@ async def test_stale_device_page_edit_refreshes_without_overwriting(
     changed = replace(SCHEDULES[0], quantity=40)
     client.get_schedules.return_value = (changed, *SCHEDULES[1:])
     with pytest.raises(HomeAssistantError):
-        await entry.runtime_data.schedules.async_change_slot(1, quantity=33)
+        await entry.runtime_data.schedules.async_change_slot(1, {"quantity": 33})
     assert entry.runtime_data.schedules.data[0] == changed
     client.update_schedule.assert_awaited_once()
 

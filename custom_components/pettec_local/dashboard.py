@@ -92,23 +92,16 @@ async def async_setup_dashboard(hass):
         data = call.data
         slot = data["slot"]
         root = await resolve(call, f"schedule_{slot}_schedule_time")
-        current = root.schedules.data
-        if current is None:
-            raise HomeAssistantError("Stored schedules are unavailable")
         await root.schedules.async_change_slot(
             slot,
-            expected_slot=ScheduleSlot(
-                **{
-                    **data["expected"],
-                    "weekdays": (current[slot - 1].weekdays & 128)
-                    | data["expected"]["weekdays"],
-                }
-            ),
-            enabled=data["enabled"],
-            hour=data["hour"],
-            minute=data["minute"],
-            quantity=data["quantity"],
-            weekdays=(current[slot - 1].weekdays & 128) | data["weekdays"],
+            {
+                "enabled": data["enabled"],
+                "hour": data["hour"],
+                "minute": data["minute"],
+                "quantity": data["quantity"],
+                "weekdays": data["weekdays"],
+            },
+            expected_slot=ScheduleSlot(**data["expected"]),
         )
 
     async def read_feeder_details(call):

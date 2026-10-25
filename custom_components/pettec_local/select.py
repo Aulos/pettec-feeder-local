@@ -8,14 +8,7 @@ from pettec_xlink.protocol import SCHEDULE_COUNT, TRAY_INTERVALS
 
 from .coordinator import TelemetryCoordinator
 from .schedule import ScheduleEntity
-
-DAY_NAMES = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-DAY_OPTIONS = {"Every day": 127, "Monday–Friday": 31, "Saturday–Sunday": 96}
-for mask in range(1, 128):
-    if mask not in DAY_OPTIONS.values():
-        label = ", ".join(day for bit, day in enumerate(DAY_NAMES) if mask & (1 << bit))
-        DAY_OPTIONS[label] = mask
-DAY_OPTIONS["No days"] = 0
+from .schedule_rules import DAY_OPTIONS, EDITABLE_WEEKDAYS
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -41,7 +34,9 @@ class ScheduleDays(ScheduleEntity, SelectEntity):
         if slot is None:
             return None
         return next(
-            label for label, mask in DAY_OPTIONS.items() if mask == slot.weekdays & 127
+            label
+            for label, mask in DAY_OPTIONS.items()
+            if mask == slot.weekdays & EDITABLE_WEEKDAYS
         )
 
     async def async_select_option(self, option: str):
@@ -51,7 +46,7 @@ class ScheduleDays(ScheduleEntity, SelectEntity):
         if slot is None:
             raise HomeAssistantError("Stored schedules are unavailable")
         await self.coordinator.async_change_slot(
-            self.slot_number, weekdays=(slot.weekdays & 128) | DAY_OPTIONS[option]
+            self.slot_number, {"weekdays": DAY_OPTIONS[option]}
         )
 
 

@@ -30,10 +30,10 @@ class ScheduleEnabled(ScheduleEntity, SwitchEntity):
         return slot.enabled if slot else None
 
     async def async_turn_on(self, **kwargs):
-        await self.coordinator.async_change_slot(self.slot_number, enabled=True)
+        await self.coordinator.async_change_slot(self.slot_number, {"enabled": True})
 
     async def async_turn_off(self, **kwargs):
-        await self.coordinator.async_change_slot(self.slot_number, enabled=False)
+        await self.coordinator.async_change_slot(self.slot_number, {"enabled": False})
 
 
 class StartupClockSync(SwitchEntity):

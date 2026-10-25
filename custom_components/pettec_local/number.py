@@ -70,6 +70,4 @@ class ScheduleAmount(ScheduleEntity, NumberEntity):
         return slot.quantity if slot else None
 
     async def async_set_native_value(self, value: float):
-        if not MIN_QUANTITY <= value <= MAX_QUANTITY or not float(value).is_integer():
-            raise HomeAssistantError("Choose 1–200 whole grams")
-        await self.coordinator.async_change_slot(self.slot_number, quantity=int(value))
+        await self.coordinator.async_change_slot(self.slot_number, {"quantity": value})

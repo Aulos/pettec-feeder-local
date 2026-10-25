@@ -1,6 +1,5 @@
 """Set up an already provisioned feeder through its local connection."""
 
-from datetime import time
 from ipaddress import IPv4Address
 from typing import Any
 
@@ -9,12 +8,19 @@ from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_HOST
 from homeassistant.core import callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import selector, translation
-from pettec_xlink.feeder import FeederClient, ScheduleChangedError
-from pettec_xlink.protocol import ScheduleSlot
+from pettec_xlink.feeder import FeederClient
 from pettec_xlink.xlink import AuthenticationError, UnsupportedDeviceError, XlinkError
 
 from .const import CONF_ACCESS_KEY, CONF_SYNC_TIME_STARTUP, DOMAIN
+from .coordinator import ScheduleConflict, ScheduleInvalid
+from .schedule_rules import (
+    WEEKDAY_KEYS,
+    ScheduleChanges,
+    minute_of_day,
+    weekday_mask,
+)
 
 KEY_SELECTOR = selector.TextSelector(
     selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
@@ -133,9 +139,6 @@ class PetTecConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
 
-WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
-
-
 class PetTecOptionsFlow(config_entries.OptionsFlow):
     """Configure stored schedules and opt-in startup clock synchronization."""
 
@@ -164,12 +167,10 @@ class PetTecOptionsFlow(config_entries.OptionsFlow):
     async def async_step_schedules(self, user_input=None):
         if self.config_entry.state is not ConfigEntryState.LOADED:
             return self.async_abort(reason="not_loaded")
-        client = self.config_entry.runtime_data.client
+        schedules = self.config_entry.runtime_data.schedules
         try:
-            await client.connect()
-            slots = await client.get_schedules()
-        except XlinkError, OSError, TimeoutError, ValueError:
-            await client.close()
+            slots = await schedules.async_read_slots()
+        except HomeAssistantError:
             return self.async_abort(reason="cannot_read_schedules")
         if user_input is not None:
             try:
@@ -191,7 +192,7 @@ class PetTecOptionsFlow(config_entries.OptionsFlow):
         for index, slot in enumerate(slots, 1):
             days = ", ".join(
                 translations.get(f"{prefix}weekdays.options.{day}", day.title())
-                for bit, day in enumerate(WEEKDAYS)
+                for bit, day in enumerate(WEEKDAY_KEYS)
                 if slot.weekdays & (1 << bit)
             ) or translations.get(f"{prefix}schedule_status.options.no_days", "No days")
             state_key = "enabled" if slot.enabled else "disabled"
@@ -220,46 +221,31 @@ class PetTecOptionsFlow(config_entries.OptionsFlow):
         if self.config_entry.state is not ConfigEntryState.LOADED:
             return self.async_abort(reason="not_loaded")
         errors = {}
-        client = self.config_entry.runtime_data.client
+        schedules = self.config_entry.runtime_data.schedules
         if user_input is not None:
             try:
-                clock_time = time.fromisoformat(user_input["time"])
-                if clock_time.second or clock_time.microsecond or clock_time.tzinfo:
-                    raise ValueError("Schedules have minute precision")
-                quantity = user_input["quantity"]
-                if isinstance(quantity, bool) or not float(quantity).is_integer():
-                    raise ValueError("Quantity must be a whole number")
-                if not 1 <= quantity <= 200:
-                    raise ValueError("Quantity out of range")
-                # Preserve the high weekday bit used by some stock-app defaults.
-                days = self._original.weekdays & 0x80
-                for day in user_input["weekdays"]:
-                    days |= 1 << WEEKDAYS.index(day)
-                schedule = ScheduleSlot(
-                    user_input["enabled"],
-                    clock_time.hour,
-                    clock_time.minute,
-                    int(quantity),
-                    days,
-                )
-                if schedule.enabled and not days & 0x7F:
-                    raise ValueError("Choose at least one weekday")
+                hour, minute = minute_of_day(user_input["time"])
+                changes: ScheduleChanges = {
+                    "enabled": user_input["enabled"],
+                    "hour": hour,
+                    "minute": minute,
+                    "quantity": user_input["quantity"],
+                    "weekdays": weekday_mask(user_input["weekdays"]),
+                }
             except KeyError, TypeError, ValueError:
                 errors["base"] = "invalid_schedule"
             else:
                 try:
-                    actual = await client.update_schedule(
-                        self._slot, schedule, expected=self._original
+                    await schedules.async_change_slot(
+                        self._slot, changes, expected_slot=self._original
                     )
-                except ScheduleChangedError:
+                except ScheduleConflict:
                     errors["base"] = "schedule_changed"
-                except XlinkError, OSError, TimeoutError, ValueError:
-                    await client.close()
+                except ScheduleInvalid:
+                    errors["base"] = "invalid_schedule"
+                except HomeAssistantError:
                     errors["base"] = "cannot_save_schedule"
                 else:
-                    self.config_entry.runtime_data.schedules.async_set_updated_data(
-                        actual
-                    )
                     return self.async_create_entry(data=dict(self.config_entry.options))
         slot = self._original
         schema = probatio.Schema(
@@ -273,7 +259,7 @@ class PetTecOptionsFlow(config_entries.OptionsFlow):
                 ),
                 probatio.Required("weekdays"): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=list(WEEKDAYS),
+                        options=list(WEEKDAY_KEYS),
                         translation_key="weekdays",
                         multiple=True,
                     )
@@ -289,7 +275,7 @@ class PetTecOptionsFlow(config_entries.OptionsFlow):
                 "quantity": min(200, max(1, slot.quantity)),
                 "weekdays": [
                     day
-                    for bit, day in enumerate(WEEKDAYS)
+                    for bit, day in enumerate(WEEKDAY_KEYS)
                     if slot.weekdays & (1 << bit)
                 ],
             }
