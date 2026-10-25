@@ -805,6 +805,86 @@ async def test_card_actions_are_atomic_and_reject_stale_edits(hass, entry, clien
     assert client.dispense.await_count == 1
 
 
+async def test_card_rejects_non_pettec_entity(hass, entry, client):
+    await load_feeder(hass, entry, client)
+    other = entity_registry.async_get(hass).async_get_or_create(
+        "button", "other", "other_feed"
+    )
+    with pytest.raises(HomeAssistantError, match="Choose a PetTec entity"):
+        await hass.services.async_call(
+            DOMAIN,
+            "dispense",
+            {"entity_id": other.entity_id, "quantity": 10},
+            blocking=True,
+        )
+    client.dispense.assert_not_awaited()
+
+
+async def test_card_rejects_unloaded_entry(hass, entry, client):
+    await load_feeder(hass, entry, client)
+    feed = entity_registry.async_get(hass).async_get_entity_id(
+        "button", DOMAIN, f"{entry.entry_id}_feed"
+    )
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    with pytest.raises(HomeAssistantError, match="unavailable"):
+        await hass.services.async_call(
+            DOMAIN, "dispense", {"entity_id": feed, "quantity": 10}, blocking=True
+        )
+    client.dispense.assert_not_awaited()
+
+
+async def test_card_allows_anonymous_caller(hass, entry, client):
+    await load_feeder(hass, entry, client)
+    feed = entity_registry.async_get(hass).async_get_entity_id(
+        "button", DOMAIN, f"{entry.entry_id}_feed"
+    )
+    await hass.services.async_call(
+        DOMAIN, "dispense", {"entity_id": feed, "quantity": 5}, blocking=True
+    )
+    client.dispense.assert_awaited_once_with(5)
+
+
+async def test_save_schedule_requires_control_permission(hass, entry, client):
+    from unittest.mock import Mock
+
+    from homeassistant.core import Context
+    from homeassistant.exceptions import Unauthorized
+
+    await load_feeder(hass, entry, client)
+    time_entity = entity_registry.async_get(hass).async_get_entity_id(
+        "time", DOMAIN, f"{entry.entry_id}_schedule_1_schedule_time"
+    )
+    user = SimpleNamespace(
+        permissions=SimpleNamespace(check_entity=Mock(return_value=False))
+    )
+    data = {
+        "entity_id": time_entity,
+        "slot": 1,
+        "enabled": True,
+        "hour": 9,
+        "minute": 15,
+        "quantity": 30,
+        "weekdays": 0x41,
+        "expected": {
+            "enabled": True,
+            "hour": 8,
+            "minute": 30,
+            "quantity": 25,
+            "weekdays": 127,
+        },
+    }
+    with patch.object(hass.auth, "async_get_user", return_value=user):
+        with pytest.raises(Unauthorized):
+            await hass.services.async_call(
+                DOMAIN,
+                "save_schedule",
+                data,
+                blocking=True,
+                context=Context(user_id="restricted-user"),
+            )
+    client.update_schedule.assert_not_awaited()
+
+
 @pytest.mark.parametrize("quantity", [0, 201, 1.5, True, "20"])
 async def test_card_rejects_invalid_amount_without_feeding(
     hass, entry, client, quantity
@@ -827,10 +907,11 @@ async def test_card_resource_is_served_and_registration_is_idempotent(
 ):
     from aiohttp.test_utils import TestClient, TestServer
 
-    from custom_components.pettec_local.dashboard import async_setup_dashboard
+    from custom_components.pettec_local.cards import async_setup_cards
 
     await load_feeder(hass, entry, client)
-    await async_setup_dashboard(hass)
+    await async_setup_cards(hass)
+    await async_setup_cards(hass)
     async with TestClient(TestServer(hass.http.app)) as http:
         response = await http.get("/pettec_local/pettec-cards.js?v=0.7.0")
         assert response.status == 200
@@ -869,7 +950,7 @@ async def test_card_resource_updates_lazy_storage_and_preserves_other_resources(
     from homeassistant.components.lovelace.resources import ResourceStorageCollection
     from homeassistant.loader import async_get_integration
 
-    from custom_components.pettec_local.dashboard import (
+    from custom_components.pettec_local.cards import (
         CARD_PATH,
         async_register_card_resource,
     )
@@ -910,7 +991,7 @@ async def test_card_resource_leaves_yaml_managed_resources_unchanged(
     from homeassistant.components.lovelace.const import LOVELACE_DATA
     from homeassistant.components.lovelace.resources import ResourceYAMLCollection
 
-    from custom_components.pettec_local.dashboard import async_register_card_resource
+    from custom_components.pettec_local.cards import async_register_card_resource
 
     await load_feeder(hass, entry, client)
     lovelace = hass.data[LOVELACE_DATA]
@@ -924,7 +1005,8 @@ async def test_card_resource_leaves_yaml_managed_resources_unchanged(
 async def test_card_resource_storage_error_does_not_disable_actions(hass, caplog):
     from homeassistant.components.lovelace.const import LOVELACE_DATA
 
-    from custom_components.pettec_local.dashboard import async_setup_dashboard
+    from custom_components.pettec_local.card_actions import async_setup_actions
+    from custom_components.pettec_local.cards import async_setup_cards
 
     assert await async_setup_component(hass, "lovelace", {})
     with patch.object(
@@ -932,7 +1014,8 @@ async def test_card_resource_storage_error_does_not_disable_actions(hass, caplog
         "async_get_info",
         side_effect=OSError("Storage unavailable"),
     ):
-        await async_setup_dashboard(hass)
+        await async_setup_cards(hass)
+        await async_setup_actions(hass)
     assert hass.services.has_service(DOMAIN, "dispense")
     assert hass.services.has_service(DOMAIN, "save_schedule")
     assert "add it manually" in caplog.text

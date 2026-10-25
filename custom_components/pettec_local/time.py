@@ -6,6 +6,7 @@ from homeassistant.components.time import TimeEntity
 from homeassistant.exceptions import HomeAssistantError
 from pettec_xlink.protocol import SCHEDULE_COUNT
 
+from .entity_ids import SCHEDULE_TIME
 from .schedule import ScheduleEntity
 from .schedule_rules import minute_of_day
 
@@ -20,7 +21,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 
 class ScheduleTime(ScheduleEntity, TimeEntity):
-    _attr_translation_key = "schedule_time"
+    _attr_translation_key = SCHEDULE_TIME
     _attr_icon = "mdi:clock-outline"
 
     @property

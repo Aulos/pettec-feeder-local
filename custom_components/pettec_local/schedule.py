@@ -4,6 +4,7 @@ from homeassistant.const import EntityCategory
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .coordinator import FeederCoordinator, ScheduleCoordinator
+from .entity_ids import schedule_suffix, unique_id
 
 
 class ScheduleEntity(CoordinatorEntity[ScheduleCoordinator]):
@@ -13,8 +14,8 @@ class ScheduleEntity(CoordinatorEntity[ScheduleCoordinator]):
     def __init__(self, root: FeederCoordinator, slot: int):
         super().__init__(root.schedules)
         self.slot_number = slot
-        self._attr_unique_id = (
-            f"{root.entry.entry_id}_schedule_{slot}_{self._attr_translation_key}"
+        self._attr_unique_id = unique_id(
+            root.entry.entry_id, schedule_suffix(slot, self._attr_translation_key)
         )
         self._attr_translation_placeholders = {"slot": str(slot)}
         self._attr_device_info = root.device_info

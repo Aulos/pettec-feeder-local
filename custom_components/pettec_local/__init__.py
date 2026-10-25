@@ -8,9 +8,10 @@ from homeassistant.core import CoreState, HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from pettec_xlink.feeder import FeederClient
 
+from .card_actions import async_setup_actions
+from .cards import async_setup_cards
 from .const import CONF_ACCESS_KEY, CONF_SYNC_TIME_STARTUP
 from .coordinator import FeederCoordinator
-from .dashboard import async_setup_dashboard
 
 PLATFORMS = [
     Platform.SENSOR,
@@ -25,7 +26,8 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Serve the dashboard cards and register their actions."""
-    await async_setup_dashboard(hass)
+    await async_setup_cards(hass)
+    await async_setup_actions(hass)
     return True
 
 
